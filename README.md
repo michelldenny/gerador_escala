@@ -6,6 +6,8 @@ A senha é validada pelo servidor. Não existe senha embutida no HTML ou JavaScr
 
 ## Configurar
 
+**Vai usar a Vercel?** Siga [VERCEL_SETUP.md](VERCEL_SETUP.md). A versão inclui função de API própria, credenciais por variáveis de ambiente e sessões compartilhadas entre instâncias.
+
 1. Execute **npm ci** nesta pasta para instalar as dependências do servidor.
 2. Abra **Definir Senha.cmd** e escolha sua senha. Ela será armazenada somente como hash com salt em data/editor-password.json. Nenhuma senha foi escolhida automaticamente.
 3. Configure a credencial de servidor do Firebase conforme **FIREBASE_SETUP.md**. A configuração web fornecida anteriormente identifica o projeto, mas não substitui essa credencial de servidor.
@@ -20,7 +22,7 @@ Como a consulta é pública, os dados apresentados, incluindo os dados de funcio
 
 Projeto: gerador-de-escala-59952. Estado: escalas/penha. Histórico: escalas/penha/versoes. As gravações usam transações com revisão para impedir que uma aba sobrescreva alterações de outra.
 
-O servidor usa o Firebase Admin SDK com credenciais que ficam fora de public/. Ele continua exigindo a senha em todas as rotas de alteração, mesmo que alguém tente chamar a API manualmente. A chave web do Firebase e o token público da aplicação não liberam edição.
+O servidor usa o Firebase Admin SDK com credenciais que ficam fora de public/. Ele continua exigindo a senha em todas as rotas de alteração, mesmo que alguém tente chamar a API manualmente. A chave web do Firebase e o token público da aplicação não liberam edição. Na Vercel, sessões e tentativas são compartilhadas no Firestore; no servidor local, ficam em memória.
 
 O backend antigo SQLite foi preservado para recuperação e desenvolvimento explícito. Ele só é usado se ESCALA_STORAGE=sqlite for definido no ambiente; não existe troca silenciosa de Firestore para SQLite quando o acesso ao banco falha.
 

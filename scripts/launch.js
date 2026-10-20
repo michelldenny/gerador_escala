@@ -5,7 +5,7 @@ const open=() => {
   console.log(`\nAbra ${url}\nMantenha esta janela aberta enquanto usa a aplicação.\n`);
   if(process.platform==='win32') spawn('cmd.exe',['/c','start','',url],{windowsHide:true,stdio:'ignore'});
 };
-const server=createConfiguredApplication();
+const server=await createConfiguredApplication();
 server.on('error',async error => {
   if(error.code==='EADDRINUSE') {
     try { const response=await fetch(url+'/api/session'); const data=await response.json(); if(!response.ok || !data.token) throw new Error(); open(); server.close(); return; } catch { console.error('A porta 3210 está em uso por outro programa. Encerre esse programa ou use PORT e npm start.'); }

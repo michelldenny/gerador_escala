@@ -4,3 +4,4 @@ node_modules/
 .firebase/
 .env
 *service-account*.json
+.vercel/

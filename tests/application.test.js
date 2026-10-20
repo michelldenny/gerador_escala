@@ -10,7 +10,7 @@ import { hashPassword } from '../src/editor-access.js';
 function fixture() { return { funcionarios:[{nome:'Ana Teste',registro:'001',telefone:'',dataInicio:'2026-01-01',dataFim:''}],ferias:{'001':[{inicio:'2026-10-05',fim:'2026-10-10'}]},feriados:{'2026-10-12':'Feriado de teste'},trocasManuais:{},escalaFimAno:{},feriasPorAno:{},feriadosPorAno:{},trocasPorAno:{},fimAnoPorAno:{},ciclosPorAno:{},anoAtual:2026,mesAtualIndex:9,ciclos:{diaSemana:0,fimSemana:0,feriado:0} }; }
 test('persistência, validação atômica, concorrência, backup e restauração pela API',async t => {
   const directory=mkdtempSync(join(tmpdir(),'escala-test-')); const database=join(directory,'test.sqlite');
-  const server=createApplication({database,passwordHash:await hashPassword('teste-local-1234')}); await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
+  const server=createApplication({store:openStore(database),passwordHash:await hashPassword('teste-local-1234')}); await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   t.after(async () => { await new Promise(resolve => server.close(resolve)); rmSync(directory,{recursive:true,force:true}); });
   const base=`http://127.0.0.1:${server.address().port}`;
   const {token}=await (await fetch(base+'/api/session')).json();

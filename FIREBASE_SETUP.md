@@ -1,5 +1,7 @@
 # Configuração: acesso público com alterações por senha
 
+**Se a hospedagem for na Vercel**, siga [VERCEL_SETUP.md](VERCEL_SETUP.md). As instruções de Firebase Hosting abaixo são uma alternativa de hospedagem.
+
 ## Definir a senha
 
 Na pasta do projeto, instale as dependências com npm ci e abra **Definir Senha.cmd**. A senha precisa ter de 8 a 256 caracteres. O programa pede confirmação e não exibe o que você digita.

@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+.env.*
+data
+reference
+tests
+*.zip
+*.log
+*service-account*.json
+functions
