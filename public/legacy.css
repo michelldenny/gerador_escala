@@ -1,0 +1,126 @@
+
+        :root {
+            --navy: #17324d;
+            --blue: #2563eb;
+            --blue-soft: #eff6ff;
+            --slate: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --canvas: #f6f8fb;
+        }
+        * { box-sizing: border-box; }
+        body { color: #0f172a; background: var(--canvas) !important; }
+        .container { max-width: 1440px !important; }
+        .app-brand { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+        .brand-mark { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,#1d4ed8,#0f766e); box-shadow:0 10px 28px rgba(37,99,235,.22); }
+        .eyebrow { color:#64748b; font-size:.75rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+        .hero-image { max-height:72px; width:auto; border-radius:12px; box-shadow:none !important; }
+        .control-shell, .calendar-shell, .legend-shell { border:1px solid var(--line); box-shadow:0 8px 30px rgba(15,23,42,.05) !important; border-radius:18px !important; }
+        .editor-card { background:#fff !important; border:1px solid var(--line); border-radius:14px !important; padding:1rem !important; }
+        .editor-card h3 { color:var(--navy) !important; font-size:.95rem !important; }
+        .section-kicker { font-size:.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin-bottom:.25rem; }
+        input, select { background:#fff; border-color:#cbd5e1 !important; border-radius:10px !important; min-height:40px; }
+        input:focus, select:focus { outline:none; border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+        button { border-radius:10px !important; font-weight:600; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+        button:hover { transform:translateY(-1px); }
+        .primary-action { background:#2563eb !important; }
+        .employee-meta { color:#64748b; font-size:.7rem; margin-top:.15rem; }
+        .status-pill { display:inline-flex; align-items:center; gap:.3rem; border-radius:999px; padding:.18rem .5rem; font-size:.65rem; font-weight:700; }
+        .status-active { background:#dcfce7; color:#166534; }
+        .status-scheduled { background:#dbeafe; color:#1d4ed8; }
+        .status-inactive { background:#f1f5f9; color:#64748b; }
+        #calendario { gap:.45rem !important; }
+        #calendario > div { border-radius:10px; border-color:#e2e8f0; }
+        .modal-card { border-radius:18px !important; width:min(92vw,430px) !important; }
+        .view-nav { display:flex; gap:.35rem; padding:.35rem; width:max-content; background:#e9eef5; border-radius:12px; margin-bottom:1.25rem; }
+        .view-tab { color:#64748b; background:transparent; padding:.6rem 1rem; min-width:130px; }
+        .view-tab.active { color:#17324d; background:#fff; box-shadow:0 2px 10px rgba(15,23,42,.08); }
+        .config-tabs { display:flex; gap:.35rem; padding:.3rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:1.25rem; overflow-x:auto; }
+        .config-tab { flex:1; min-width:145px; padding:.65rem .8rem; color:#64748b; background:transparent; white-space:nowrap; }
+        .config-tab.active { color:#1d4ed8; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,.08); }
+        .group-hidden { display:none !important; }
+        .screen-hidden { display:none !important; }
+        .management-grid { display:grid !important; grid-template-columns:340px minmax(0,1fr); gap:1.25rem !important; align-items:start; }
+        .editor-stack { grid-column:1; display:flex; flex-direction:column; gap:.65rem; }
+        .overview-lists { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:1rem; min-width:0; }
+        .management-grid.single-panel { grid-template-columns:minmax(300px,680px); }
+        .employee-card, .vacation-card, .cycles-card, .holiday-card { display:block; width:100%; }
+        .list-pane { min-width:0; border:1px solid #e2e8f0; border-radius:14px; padding:1rem; background:#fff; }
+        .editor-card > h3 { display:flex; align-items:center; margin:0 !important; cursor:pointer; user-select:none; min-height:34px; }
+        #editorStack .editor-card > h3 { cursor:default; margin-bottom:1rem !important; }
+        .editor-card { min-width:0; }
+        .editor-card { scroll-margin-top:1rem; }
+        .editor-card input, .editor-card select { margin-bottom:.5rem; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
+        .form-grid .span-2 { grid-column:span 2; }
+        .field-label { display:block; color:#64748b; font-size:.68rem; font-weight:700; margin:0 0 .22rem .1rem; text-transform:uppercase; letter-spacing:.04em; }
+        #listaFuncionarios, #listaFerias, #listaFeriados { max-height:none !important; overflow:visible !important; margin-top:1rem; }
+        #listaFuncionarios { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        #listaFuncionarios > div, #listaFerias > div, #listaFeriados > div { margin:0 !important; border:1px solid #e2e8f0; box-shadow:none; }
+        #listaFerias { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        #listaFeriados { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        .list-heading { display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding-top:.8rem; border-top:1px solid #e2e8f0; }
+        .list-heading strong { color:#334155; font-size:.78rem; }
+        .action-row { display:flex; gap:.4rem; }
+        @media (max-width:767px) {
+            .app-brand { align-items:flex-start; }
+            .hero-image { display:none; }
+            #calendario { gap:.2rem !important; }
+            .view-nav { width:100%; }
+            .view-tab { flex:1; min-width:0; }
+            .management-grid { grid-template-columns:1fr; }
+            .editor-stack, .overview-lists { grid-column:1; grid-row:auto; }
+            #listaFuncionarios, #listaFerias, #listaFeriados { grid-template-columns:1fr; }
+            .form-grid { grid-template-columns:1fr; }
+            .form-grid .span-2 { grid-column:span 1; }
+        }
+        /* Estilos adicionais para responsividade */
+        @media (max-width: 767px) {
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 > div {
+                margin-bottom: 1.5rem;
+            }
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: 1fr;
+            }
+            .h-20.md\:h-24 {
+                height: 6rem;
+                word-break: break-all;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
+            }
+            .fiscal-name-mobile {
+                writing-mode: vertical-lr;
+                text-orientation: mixed;
+                white-space: nowrap;
+                transform: rotate(180deg);
+                font-size: 0.65rem;
+                line-height: 0.75rem;
+                margin-top: 5px;
+            }
+            .calendar-day-content {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                position: relative;
+            }
+            .calendar-day-content .font-bold.text-sm.mb-1 {
+                position: absolute;
+                top: 5px;
+                left: 5px;
+                z-index: 10;
+            }
+            .calendar-day-content .text-xs.font-semibold {
+                position: absolute;
+                bottom: 5px;
+                left: 5px;
+                width: calc(100% - 10px);
+            }
+        }
+        .drag-target {
+            border: 2px dashed #9ca3af;
+            background-color: #f3f4f6;
+            transition: all 0.2s ease;
+        }
+    

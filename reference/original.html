@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Escalas de Plantão</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --navy: #17324d;
+            --blue: #2563eb;
+            --blue-soft: #eff6ff;
+            --slate: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --canvas: #f6f8fb;
+        }
+        * { box-sizing: border-box; }
+        body { color: #0f172a; background: var(--canvas) !important; }
+        .container { max-width: 1440px !important; }
+        .app-brand { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1.5rem; }
+        .brand-mark { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,#1d4ed8,#0f766e); box-shadow:0 10px 28px rgba(37,99,235,.22); }
+        .eyebrow { color:#64748b; font-size:.75rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+        .hero-image { max-height:72px; width:auto; border-radius:12px; box-shadow:none !important; }
+        .control-shell, .calendar-shell, .legend-shell { border:1px solid var(--line); box-shadow:0 8px 30px rgba(15,23,42,.05) !important; border-radius:18px !important; }
+        .editor-card { background:#fff !important; border:1px solid var(--line); border-radius:14px !important; padding:1rem !important; }
+        .editor-card h3 { color:var(--navy) !important; font-size:.95rem !important; }
+        .section-kicker { font-size:.7rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.08em; font-weight:700; margin-bottom:.25rem; }
+        input, select { background:#fff; border-color:#cbd5e1 !important; border-radius:10px !important; min-height:40px; }
+        input:focus, select:focus { outline:none; border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,.12); }
+        button { border-radius:10px !important; font-weight:600; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+        button:hover { transform:translateY(-1px); }
+        .primary-action { background:#2563eb !important; }
+        .employee-meta { color:#64748b; font-size:.7rem; margin-top:.15rem; }
+        .status-pill { display:inline-flex; align-items:center; gap:.3rem; border-radius:999px; padding:.18rem .5rem; font-size:.65rem; font-weight:700; }
+        .status-active { background:#dcfce7; color:#166534; }
+        .status-scheduled { background:#dbeafe; color:#1d4ed8; }
+        .status-inactive { background:#f1f5f9; color:#64748b; }
+        #calendario { gap:.45rem !important; }
+        #calendario > div { border-radius:10px; border-color:#e2e8f0; }
+        .modal-card { border-radius:18px !important; width:min(92vw,430px) !important; }
+        .view-nav { display:flex; gap:.35rem; padding:.35rem; width:max-content; background:#e9eef5; border-radius:12px; margin-bottom:1.25rem; }
+        .view-tab { color:#64748b; background:transparent; padding:.6rem 1rem; min-width:130px; }
+        .view-tab.active { color:#17324d; background:#fff; box-shadow:0 2px 10px rgba(15,23,42,.08); }
+        .config-tabs { display:flex; gap:.35rem; padding:.3rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:12px; margin-bottom:1.25rem; overflow-x:auto; }
+        .config-tab { flex:1; min-width:145px; padding:.65rem .8rem; color:#64748b; background:transparent; white-space:nowrap; }
+        .config-tab.active { color:#1d4ed8; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,.08); }
+        .group-hidden { display:none !important; }
+        .screen-hidden { display:none !important; }
+        .management-grid { display:grid !important; grid-template-columns:340px minmax(0,1fr); gap:1.25rem !important; align-items:start; }
+        .editor-stack { grid-column:1; display:flex; flex-direction:column; gap:.65rem; }
+        .overview-lists { grid-column:2; grid-row:1; display:flex; flex-direction:column; gap:1rem; min-width:0; }
+        .management-grid.single-panel { grid-template-columns:minmax(300px,680px); }
+        .employee-card, .vacation-card, .cycles-card, .holiday-card { display:block; width:100%; }
+        .list-pane { min-width:0; border:1px solid #e2e8f0; border-radius:14px; padding:1rem; background:#fff; }
+        .editor-card > h3 { display:flex; align-items:center; margin:0 !important; cursor:pointer; user-select:none; min-height:34px; }
+        #editorStack .editor-card > h3 { cursor:default; margin-bottom:1rem !important; }
+        .editor-card { min-width:0; }
+        .editor-card { scroll-margin-top:1rem; }
+        .editor-card input, .editor-card select { margin-bottom:.5rem; }
+        .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; }
+        .form-grid .span-2 { grid-column:span 2; }
+        .field-label { display:block; color:#64748b; font-size:.68rem; font-weight:700; margin:0 0 .22rem .1rem; text-transform:uppercase; letter-spacing:.04em; }
+        #listaFuncionarios, #listaFerias, #listaFeriados { max-height:none !important; overflow:visible !important; margin-top:1rem; }
+        #listaFuncionarios { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        #listaFuncionarios > div, #listaFerias > div, #listaFeriados > div { margin:0 !important; border:1px solid #e2e8f0; box-shadow:none; }
+        #listaFerias { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        #listaFeriados { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+        .list-heading { display:flex; justify-content:space-between; align-items:center; margin-top:1rem; padding-top:.8rem; border-top:1px solid #e2e8f0; }
+        .list-heading strong { color:#334155; font-size:.78rem; }
+        .action-row { display:flex; gap:.4rem; }
+        @media (max-width:767px) {
+            .app-brand { align-items:flex-start; }
+            .hero-image { display:none; }
+            #calendario { gap:.2rem !important; }
+            .view-nav { width:100%; }
+            .view-tab { flex:1; min-width:0; }
+            .management-grid { grid-template-columns:1fr; }
+            .editor-stack, .overview-lists { grid-column:1; grid-row:auto; }
+            #listaFuncionarios, #listaFerias, #listaFeriados { grid-template-columns:1fr; }
+            .form-grid { grid-template-columns:1fr; }
+            .form-grid .span-2 { grid-column:span 1; }
+        }
+        /* Estilos adicionais para responsividade */
+        @media (max-width: 767px) {
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 > div {
+                margin-bottom: 1.5rem;
+            }
+            .grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4 {
+                grid-template-columns: 1fr;
+            }
+            .h-20.md\:h-24 {
+                height: 6rem;
+                word-break: break-all;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: flex-start;
+            }
+            .fiscal-name-mobile {
+                writing-mode: vertical-lr;
+                text-orientation: mixed;
+                white-space: nowrap;
+                transform: rotate(180deg);
+                font-size: 0.65rem;
+                line-height: 0.75rem;
+                margin-top: 5px;
+            }
+            .calendar-day-content {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                position: relative;
+            }
+            .calendar-day-content .font-bold.text-sm.mb-1 {
+                position: absolute;
+                top: 5px;
+                left: 5px;
+                z-index: 10;
+            }
+            .calendar-day-content .text-xs.font-semibold {
+                position: absolute;
+                bottom: 5px;
+                left: 5px;
+                width: calc(100% - 10px);
+            }
+        }
+        .drag-target {
+            border: 2px dashed #9ca3af;
+            background-color: #f3f4f6;
+            transition: all 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <header class="app-brand">
+            <div class="flex items-center gap-3">
+                <div class="brand-mark"><i class="fas fa-shield-alt"></i></div>
+                <div>
+                    <div class="eyebrow">Defesa Civil · Subprefeitura Penha</div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900">Gestão de escalas</h1>
+                    <p class="text-sm text-gray-500">Plantões, equipes e períodos em uma visão única.</p>
+                </div>
+            </div>
+            <img src="https://i.postimg.cc/3Jt9QN6v/img-subpref-penha.jpg" alt="Subprefeitura Penha" class="hero-image">
+        </header>
+
+        <nav class="view-nav" aria-label="Áreas da aplicação">
+            <button id="tabEscala" class="view-tab active" onclick="mostrarTela('escala')"><i class="fas fa-calendar-alt mr-2"></i>Escala</button>
+            <button id="tabConfiguracoes" class="view-tab" onclick="mostrarTela('configuracoes')"><i class="fas fa-sliders-h mr-2"></i>Configurações</button>
+        </nav>
+
+        <!-- Painel de Controle -->
+        <section id="configScreen" class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-8 control-shell screen-hidden">
+            <div class="mb-5">
+                <div class="section-kicker">Configuração</div>
+                <h2 class="text-lg font-bold text-gray-800">Painel de gestão</h2>
+            </div>
+            <nav class="config-tabs" aria-label="Grupos de configuração">
+                <button id="configTabFuncionarios" class="config-tab active" onclick="mostrarGrupoConfig('funcionarios')"><i class="fas fa-users mr-2"></i>Funcionários</button>
+                <button id="configTabCiclos" class="config-tab" onclick="mostrarGrupoConfig('ciclos')"><i class="fas fa-redo-alt mr-2"></i>Ciclos</button>
+                <button id="configTabFerias" class="config-tab" onclick="mostrarGrupoConfig('ferias')"><i class="fas fa-plane mr-2"></i>Férias</button>
+                <button id="configTabFeriados" class="config-tab" onclick="mostrarGrupoConfig('feriados')"><i class="fas fa-calendar-check mr-2"></i>Feriados</button>
+            </nav>
+            <div class="management-grid">
+                <div id="editorStack" class="editor-stack">
+                <!-- Gestão de Funcionários -->
+                <div class="bg-red-50 p-4 rounded-lg editor-card employee-card">
+                    <h3 class="text-lg font-semibold mb-4 text-red-800">
+                        <i class="fas fa-user-plus mr-2"></i>Gestão de Funcionários
+                    </h3>
+                    <div class="mb-3 form-grid">
+                        <div class="span-2"><label class="field-label" for="nomeFuncionario">Nome completo</label><input type="text" id="nomeFuncionario" placeholder="Nome do funcionário" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="field-label" for="registroFuncionario">Registro funcional</label><input type="text" id="registroFuncionario" placeholder="Nº do registro" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="field-label" for="telefoneFuncionario">Telefone</label><input type="text" id="telefoneFuncionario" placeholder="Telefone" class="w-full p-2 border rounded text-sm"></div>
+                        <div class="span-2"><label class="field-label" for="inicioFuncionario">Escalar a partir de</label><input type="date" id="inicioFuncionario" class="w-full p-2 border rounded text-sm"></div>
+                        <button id="salvarFuncionarioBtn" onclick="adicionarFuncionario()" class="bg-blue-600 text-white p-2 hover:bg-blue-700 text-sm primary-action span-2">
+                            <i class="fas fa-plus mr-1"></i><span>Adicionar funcionário</span>
+                        </button>
+                        <button id="cancelarEdicaoFuncionarioBtn" onclick="cancelarEdicaoFuncionario()" class="hidden bg-gray-100 text-gray-700 p-2 text-sm span-2">Cancelar edição</button>
+                    </div>
+                    <div class="list-pane">
+                        <div class="list-heading"><strong>Equipe cadastrada</strong><span id="totalFuncionarios" class="text-xs text-gray-400"></span></div>
+                        <div id="listaFuncionarios"></div>
+                    </div>
+                </div>
+
+                <!-- Início dos Ciclos de Rotação -->
+                <div class="bg-yellow-50 p-4 rounded-lg editor-card cycles-card">
+                    <h3 class="text-lg font-semibold mb-4 text-yellow-800">
+                        <i class="fas fa-redo-alt mr-2"></i>Início dos Ciclos
+                    </h3>
+                    <p id="cicloAnoLabel" class="text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg px-3 py-2 mb-3"></p>
+                    <div class="mb-3">
+                        <label for="cicloDiaSemanaInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Dias da Semana (início)</label>
+                        <select id="cicloDiaSemanaInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cicloFimSemanaInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Finais de Semana (início)</label>
+                        <select id="cicloFimSemanaInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cicloFeriadosInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Feriados (início)</label>
+                        <select id="cicloFeriadosInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                </div>
+            
+                <!-- Gestão de Férias -->
+                <div class="bg-blue-50 p-4 rounded-lg flex flex-col editor-card vacation-card">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-800">
+                        <i class="fas fa-plane mr-2"></i>Gestão de Férias
+                    </h3>
+                    <div class="vacation-form">
+                    <label class="field-label" for="funcionarioFerias">Funcionário</label><select id="funcionarioFerias" class="w-full p-2 border rounded mb-2">
+                        <option value="">Selecionar Funcionário</option>
+                    </select>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><label class="field-label" for="inicioFerias">Início</label><input type="date" id="inicioFerias" class="p-2 border rounded text-sm w-full"></div>
+                        <div><label class="field-label" for="fimFerias">Fim</label><input type="date" id="fimFerias" class="p-2 border rounded text-sm w-full"></div>
+                    </div>
+                    <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 text-sm">
+                        <i class="fas fa-plus mr-1"></i><span>Adicionar férias</span>
+                    </button>
+                    <button id="cancelarEdicaoFeriasBtn" onclick="cancelarEdicaoFerias()" class="hidden w-full bg-gray-100 text-gray-700 p-2 text-sm mt-2">Cancelar edição</button>
+                    </div>
+                    <div class="list-pane">
+                        <div class="list-heading"><strong>Períodos cadastrados</strong><span id="totalFerias" class="text-xs text-gray-400"></span></div>
+                        <div id="listaFerias"></div>
+                    </div>
+                </div>
+
+                <!-- Controle de Feriados -->
+                <div class="bg-green-50 p-4 rounded-lg flex flex-col editor-card holiday-card">
+                    <h3 class="text-lg font-semibold mb-4 text-green-800">
+                        <i class="fas fa-calendar-check mr-2"></i>Controle de Feriados
+                    </h3>
+                    <input type="date" id="dataFeriado" class="w-full p-2 border rounded mb-2">
+                    <input type="text" id="nomeFeriado" placeholder="Nome do feriado" class="w-full p-2 border rounded mb-2 text-sm">
+                        <button onclick="adicionarFeriado()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 text-sm">
+                        <i class="fas fa-plus mr-1"></i>Adicionar Feriado
+                    </button>
+                    <div class="list-pane holiday-list-pane">
+                        <div class="list-heading"><strong>Feriados do ano</strong></div>
+                        <div id="listaFeriados"></div>
+                    </div>
+                </div>
+                </div>
+                <div id="overviewLists" class="overview-lists"></div>
+            </div>
+            
+            <!-- Exportação -->
+            <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mt-6 editor-card">
+                <h3 class="text-lg font-semibold mb-4 text-purple-800">
+                    <i class="fas fa-download mr-2"></i>Exportação
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+                    <select id="mesExportar" class="w-full p-2 border rounded">
+                        <option value="">Selecionar Mês</option>
+                    </select>
+                    <select id="formatoExportar" class="w-full p-2 border rounded">
+                        <option value="pdf">PDF</option>
+                        <option value="word">Word</option>
+                        <option value="xml">XML</option>
+                    </select>
+                    <button onclick="exportarDiarioOficial()" class="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600 text-sm">
+                        <i class="fas fa-file-alt mr-1"></i>Diário Oficial
+                    </button>
+                    <button onclick="exportarDefesaCivil()" class="w-full bg-purple-600 text-white p-2 rounded hover:bg-purple-700 text-sm">
+                        <i class="fas fa-shield-alt mr-1"></i>Defesa Civil
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                    <button onclick="exportarConfiguracaoXML()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600 text-sm">
+                        <i class="fas fa-file-export mr-1"></i>Salvar Configuração
+                    </button>
+                    <input type="file" id="importXmlInput" accept=".xml" class="hidden" onchange="handleFileUpload(event)">
+                    <button onclick="document.getElementById('importXmlInput').click()" class="w-full bg-blue-700 text-white p-2 rounded hover:bg-blue-800 text-sm">
+                        <i class="fas fa-file-import mr-1"></i>Importar Configuração
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="escalaScreen">
+        <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-8 calendar-shell">
+            <div class="grid grid-cols-2 md:flex md:justify-between md:items-center gap-2 mb-6 text-sm">
+                <button onclick="anoAnterior()" class="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 w-full md:w-auto">
+                    <i class="fas fa-angle-double-left mr-1"></i>Ano Anterior
+                </button>
+                <button onclick="mesAnterior()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 w-full md:w-auto">
+                    <i class="fas fa-chevron-left mr-1"></i>Anterior
+                </button>
+
+                <h2 id="mesAtual" class="col-span-2 md:col-span-1 text-xl font-bold text-center order-first md:order-none"></h2>
+
+                <button onclick="proximoMes()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 w-full md:w-auto">
+                    Próximo<i class="fas fa-chevron-right ml-1"></i>
+                </button>
+                <button onclick="proximoAno()" class="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 w-full md:w-auto">
+                    Próximo Ano<i class="fas fa-angle-double-right ml-1"></i>
+                </button>
+            </div>
+
+            
+            <div id="calendario" class="grid grid-cols-7 gap-2"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 legend-shell">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-info-circle mr-2"></i>Legenda
+            </h3>
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded mr-2"></div>
+                    <span>Dias da Semana</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-green-200 border-2 border-green-400 rounded mr-2"></div>
+                    <span>Finais de Semana</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-red-200 border-2 border-red-400 rounded mr-2"></div>
+                    <span>Feriados</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-gray-200 border-2 border-gray-400 rounded mr-2"></div>
+                    <span>Férias</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-purple-200 border-2 border-purple-400 rounded mr-2"></div>
+                    <span>Fim de Ano</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta -->
+    <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4" id="alertModalTitle">Alerta</h3>
+            <p class="mb-4" id="alertModalMessage"></p>
+            <div class="flex justify-end">
+                <button id="closeAlertBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Confirmação (BUG FIX) -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4">Confirmação</h3>
+            <p class="mb-4" id="confirmModalMessage"></p>
+            <div class="flex justify-end gap-2">
+                <button id="confirmCancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+                <button id="confirmOkBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Atribuição de Plantão de Fim de Ano -->
+    <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96 modal-card">
+            <h3 class="text-lg font-bold mb-4">Atribuir Plantão de Fim de Ano</h3>
+            <p class="mb-4" id="assignModalDate"></p>
+            <select id="assignModalFuncionario" class="w-full p-2 border rounded mb-4">
+                <option value="">Selecionar Funcionário</option>
+            </select>
+            <div class="flex justify-end gap-2">
+                <button id="assignModalCancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+                <button id="assignModalOkBtn" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Atribuir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de desligamento: preserva o histórico e encerra apenas a vigência -->
+    <div id="desligamentoModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl modal-card">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 grid place-items-center"><i class="fas fa-user-clock"></i></div>
+                <div><h3 class="text-lg font-bold">Encerrar participação</h3><p id="desligamentoNome" class="text-sm text-gray-500"></p></div>
+            </div>
+            <label for="dataDesligamento" class="block text-sm font-semibold text-gray-700 mb-1">Não escalar a partir de</label>
+            <input type="date" id="dataDesligamento" class="w-full p-2 border mb-2">
+            <p class="text-xs text-gray-500 mb-5">O funcionário continuará aparecendo nas escalas anteriores a esta data.</p>
+            <div class="flex justify-end gap-2">
+                <button id="desligamentoCancelBtn" class="bg-gray-100 text-gray-700 px-4 py-2">Cancelar</button>
+                <button id="desligamentoOkBtn" class="bg-amber-600 text-white px-4 py-2 hover:bg-amber-700">Confirmar</button>
+            </div>
+        </div>
+        </section>
+    </div>
+
+    <script>
+        // === VARIÁVEIS GLOBAIS ===
+        let funcionarios = [];
+        let mesAtualIndex = new Date().getMonth();
+        let anoAtual = 2025;
+        let escalaAtual = {};
+        let feriados = {};
+        // CORREÇÃO: 'ferias' agora é um objeto usando 'registro' como chave
+        let ferias = {}; // Ex: { "12345": [{inicio: "...", fim: "..."}, ...], "67890": [...] }
+
+        let indiceDiaSemana = 0;
+        let indiceFinalSemana = 0;
+        let indiceFeriado = 0;
+        let registrosInicioCiclo = {};
+        let inicioCicloPendente = {};
+
+        let trocasManuais = {};
+        let escalaFimAno = {};
+
+        // Estados salvos por ano
+        let escalasPorAno = {};
+        let trocasPorAno = {};
+        let fimAnoPorAno = {};
+        let feriasPorAno = {};
+        let feriadosPorAno = {};
+        let ciclosPorAno = {};
+        
+        // === VARIÁVEIS DOS MODAIS (BUG FIX) ===
+        let alertModal, alertModalTitle, alertModalMessage, closeAlertBtn;
+        let assignModal, assignModalDate, assignModalFuncionario, assignModalCancelBtn, assignModalOkBtn;
+        let confirmModal, confirmModalMessage, confirmCancelBtn, confirmOkBtn;
+        let confirmCallback = null;
+        let desligamentoModal, desligamentoNome, dataDesligamento, desligamentoCancelBtn, desligamentoOkBtn;
+        let funcionarioEmDesligamento = null;
+        let funcionarioEditandoIndex = null;
+        let feriasEditando = null;
+        const STORAGE_KEY = 'escala-defesa-civil-v2';
+
+        // === INICIALIZAÇÃO ===
+        document.addEventListener('DOMContentLoaded', function() {
+            anoAtual = new Date().getFullYear();
+            carregarDadosLocais();
+            if (!Object.keys(feriados).length) feriados = carregarFeriados(anoAtual);
+            organizarPainelConfiguracoes();
+
+            preencherSelects();
+            atualizarRotuloAnoCiclos();
+            atualizarListaFuncionarios();
+            
+            // Modal de Alerta
+            alertModal = document.getElementById('alertModal');
+            alertModalTitle = document.getElementById('alertModalTitle');
+            alertModalMessage = document.getElementById('alertModalMessage');
+            closeAlertBtn = document.getElementById('closeAlertBtn');
+            closeAlertBtn.addEventListener('click', () => alertModal.classList.add('hidden'));
+
+            // *** INÍCIO DA CORREÇÃO (BUG FIX) ***
+            // Inicialização do Modal de Confirmação
+            confirmModal = document.getElementById('confirmModal');
+            confirmModalMessage = document.getElementById('confirmModalMessage');
+            confirmCancelBtn = document.getElementById('confirmCancelBtn');
+            confirmOkBtn = document.getElementById('confirmOkBtn');
+
+            confirmCancelBtn.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+                if (confirmCallback) confirmCallback(false);
+            });
+
+            confirmOkBtn.addEventListener('click', () => {
+                confirmModal.classList.add('hidden');
+                if (confirmCallback) confirmCallback(true);
+            });
+            // *** FIM DA CORREÇÃO ***
+
+            // Inicialização do modal de Atribuição
+            assignModal = document.getElementById('assignModal');
+            assignModalDate = document.getElementById('assignModalDate');
+            assignModalFuncionario = document.getElementById('assignModalFuncionario');
+            assignModalCancelBtn = document.getElementById('assignModalCancelBtn');
+            assignModalOkBtn = document.getElementById('assignModalOkBtn');
+            assignModalCancelBtn.addEventListener('click', () => assignModal.classList.add('hidden'));
+
+            desligamentoModal = document.getElementById('desligamentoModal');
+            desligamentoNome = document.getElementById('desligamentoNome');
+            dataDesligamento = document.getElementById('dataDesligamento');
+            desligamentoCancelBtn = document.getElementById('desligamentoCancelBtn');
+            desligamentoOkBtn = document.getElementById('desligamentoOkBtn');
+            desligamentoCancelBtn.addEventListener('click', fecharModalDesligamento);
+            desligamentoOkBtn.addEventListener('click', confirmarDesligamento);
+
+            gerarEscala();
+            atualizarCalendario();
+            atualizarListaFeriados();
+            atualizarListaFerias();
+            document.getElementById('inicioFuncionario').value = formatarDataISO(new Date());
+            mostrarTela(funcionarios.length ? 'escala' : 'configuracoes');
+        });
+
+        function mostrarTela(tela) {
+            const configuracoes = tela === 'configuracoes';
+            document.getElementById('configScreen').classList.toggle('screen-hidden', !configuracoes);
+            document.getElementById('escalaScreen').classList.toggle('screen-hidden', configuracoes);
+            document.getElementById('tabConfiguracoes').classList.toggle('active', configuracoes);
+            document.getElementById('tabEscala').classList.toggle('active', !configuracoes);
+        }
+
+        function organizarPainelConfiguracoes() {
+            const overview = document.getElementById('overviewLists');
+            const gruposListas = [
+                ['.employee-card .list-pane', 'funcionarios'],
+                ['.vacation-card .list-pane', 'ferias'],
+                ['.holiday-card .list-pane', 'feriados']
+            ];
+            gruposListas.forEach(([seletor, grupo]) => {
+                const painel = document.querySelector(seletor);
+                if (painel) {
+                    painel.dataset.configGroup = grupo;
+                    overview.appendChild(painel);
+                }
+            });
+            document.querySelector('.employee-card').dataset.configGroup = 'funcionarios';
+            document.querySelector('.cycles-card').dataset.configGroup = 'ciclos';
+            document.querySelector('.vacation-card').dataset.configGroup = 'ferias';
+            document.querySelector('.holiday-card').dataset.configGroup = 'feriados';
+            mostrarGrupoConfig('funcionarios');
+        }
+
+        function mostrarGrupoConfig(grupo) {
+            document.querySelectorAll('[data-config-group]').forEach(elemento => {
+                elemento.classList.toggle('group-hidden', elemento.dataset.configGroup !== grupo);
+            });
+            document.querySelectorAll('.config-tab').forEach(botao => botao.classList.remove('active'));
+            const ids = { funcionarios: 'configTabFuncionarios', ciclos: 'configTabCiclos', ferias: 'configTabFerias', feriados: 'configTabFeriados' };
+            document.getElementById(ids[grupo])?.classList.add('active');
+            document.getElementById('overviewLists')?.classList.toggle('group-hidden', grupo === 'ciclos');
+            document.querySelector('.management-grid')?.classList.toggle('single-panel', grupo === 'ciclos');
+        }
+
+        function abrirGrupo(seletor, focoId) {
+            const card = document.querySelector(seletor);
+            if (!card) return;
+            mostrarGrupoConfig(card.dataset.configGroup);
+            requestAnimationFrame(() => {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (focoId) {
+                    setTimeout(() => document.getElementById(focoId)?.focus({ preventScroll: true }), 350);
+                }
+            });
+        }
+
+        function carregarDadosLocais() {
+            try {
+                const salvo = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+                if (!salvo) return;
+                funcionarios = (salvo.funcionarios || []).map(f => ({ ...f, dataInicio: f.dataInicio || '1900-01-01', dataFim: f.dataFim || '' }));
+                ferias = salvo.ferias || {};
+                feriados = salvo.feriados || {};
+                trocasManuais = salvo.trocasManuais || {};
+                escalaFimAno = salvo.escalaFimAno || {};
+                feriasPorAno = salvo.feriasPorAno || {};
+                feriadosPorAno = salvo.feriadosPorAno || {};
+                trocasPorAno = salvo.trocasPorAno || {};
+                fimAnoPorAno = salvo.fimAnoPorAno || {};
+                ciclosPorAno = salvo.ciclosPorAno || {};
+                anoAtual = Number.isInteger(salvo.anoAtual) ? salvo.anoAtual : anoAtual;
+                mesAtualIndex = Number.isInteger(salvo.mesAtualIndex) ? salvo.mesAtualIndex : new Date().getMonth();
+                // Recupera períodos de versões anteriores sem deixar um mapa anual vazio ocultá-los.
+                ferias = combinarFerias(salvo.ferias || {}, feriasPorAno[anoAtual] || {});
+                feriasPorAno[anoAtual] = JSON.parse(JSON.stringify(ferias));
+                indiceDiaSemana = salvo.ciclos?.diaSemana ?? 0;
+                indiceFinalSemana = salvo.ciclos?.fimSemana ?? 0;
+                indiceFeriado = salvo.ciclos?.feriado ?? 0;
+                if (!ciclosPorAno[anoAtual]) {
+                    ciclosPorAno[anoAtual] = { diaSemana: indiceDiaSemana, fimSemana: indiceFinalSemana, feriado: indiceFeriado };
+                }
+            } catch (error) {
+                console.warn('Não foi possível recuperar os dados locais.', error);
+            }
+        }
+
+        function combinarFerias(base, anual) {
+            const resultado = JSON.parse(JSON.stringify(base || {}));
+            Object.entries(anual || {}).forEach(([registro, periodos]) => {
+                if (!resultado[registro]) resultado[registro] = [];
+                (periodos || []).forEach(periodo => {
+                    const existe = resultado[registro].some(item => item.inicio === periodo.inicio && item.fim === periodo.fim);
+                    if (!existe) resultado[registro].push({ inicio: periodo.inicio, fim: periodo.fim });
+                });
+            });
+            return resultado;
+        }
+
+        function salvarDadosLocais() {
+            feriasPorAno[anoAtual] = JSON.parse(JSON.stringify(ferias));
+            feriadosPorAno[anoAtual] = { ...feriados };
+            trocasPorAno[anoAtual] = { ...trocasManuais };
+            fimAnoPorAno[anoAtual] = { ...escalaFimAno };
+            const ciclos = {
+                diaSemana: parseInt(document.getElementById('cicloDiaSemanaInicio')?.value) || 0,
+                fimSemana: parseInt(document.getElementById('cicloFimSemanaInicio')?.value) || 0,
+                feriado: parseInt(document.getElementById('cicloFeriadosInicio')?.value) || 0
+            };
+            ciclosPorAno[anoAtual] = { ...ciclos };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ funcionarios, ferias, feriados, trocasManuais, escalaFimAno, feriasPorAno, feriadosPorAno, trocasPorAno, fimAnoPorAno, ciclosPorAno, anoAtual, mesAtualIndex, ciclos }));
+        }
+
+        function funcionarioAtivoNaData(funcionario, dataStr) {
+            if (!funcionario) return false;
+            const inicio = funcionario.dataInicio || '1900-01-01';
+            const fim = funcionario.dataFim || '';
+            return dataStr >= inicio && (!fim || dataStr < fim);
+        }
+
+        function escapeHTML(valor) {
+            return String(valor ?? '').replace(/[&<>'"]/g, caractere => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[caractere]));
+        }
+
+        function escapeXML(valor) {
+            return String(valor ?? '').replace(/[&<>'"]/g, caractere => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&apos;', '"': '&quot;' }[caractere]));
+        }
+
+        function atualizarCiclos() {
+            ciclosPorAno[anoAtual] = {
+                diaSemana: parseInt(document.getElementById('cicloDiaSemanaInicio').value) || 0,
+                fimSemana: parseInt(document.getElementById('cicloFimSemanaInicio').value) || 0,
+                feriado: parseInt(document.getElementById('cicloFeriadosInicio').value) || 0
+            };
+            gerarEscala();
+            atualizarCalendario();
+            salvarDadosLocais();
+        }
+        
+        // === FUNÇÕES DOS MODAIS (BUG FIX) ===
+
+        function showAlert(message, title = 'Alerta') {
+            alertModalTitle.textContent = title;
+            alertModalMessage.textContent = message;
+            alertModal.classList.remove('hidden');
+        }
+        
+        // *** INÍCIO DA CORREÇÃO (BUG FIX) ***
+        // Função que estava faltando
+        function showConfirm(message, callback) {
+            confirmModalMessage.textContent = message;
+            confirmCallback = callback; // Armazena o callback
+            confirmModal.classList.remove('hidden');
+        }
+        // *** FIM DA CORREÇÃO ***
+
+        // === GESTÃO DE ESTADO (ANOS) ===
+
+        function salvarEstadoAno(ano) {
+            escalasPorAno[ano] = { ...escalaAtual };
+            trocasPorAno[ano] = { ...trocasManuais };
+            fimAnoPorAno[ano] = { ...escalaFimAno };
+            feriasPorAno[ano] = JSON.parse(JSON.stringify(ferias)); // Agora usa 'registro'
+            feriadosPorAno[ano] = { ...feriados };
+            ciclosPorAno[ano] = {
+                diaSemana: parseInt(document.getElementById('cicloDiaSemanaInicio').value) || 0,
+                fimSemana: parseInt(document.getElementById('cicloFimSemanaInicio').value) || 0,
+                feriado: parseInt(document.getElementById('cicloFeriadosInicio').value) || 0
+            };
+        }
+
+        function carregarEstadoAno(ano) {
+            escalaAtual = escalasPorAno[ano] || {};
+            trocasManuais = trocasPorAno[ano] || {};
+            escalaFimAno = fimAnoPorAno[ano] || {};
+            ferias = feriasPorAno[ano] || {}; // Agora usa 'registro'
+            feriados = feriadosPorAno[ano] || carregarFeriados(ano);
+            const ciclos = ciclosPorAno[ano] || { diaSemana: 0, fimSemana: 0, feriado: 0 };
+            indiceDiaSemana = ciclos.diaSemana;
+            indiceFinalSemana = ciclos.fimSemana;
+            indiceFeriado = ciclos.feriado;
+            document.getElementById('cicloDiaSemanaInicio').value = indiceDiaSemana;
+            document.getElementById('cicloFimSemanaInicio').value = indiceFinalSemana;
+            document.getElementById('cicloFeriadosInicio').value = indiceFeriado;
+            atualizarRotuloAnoCiclos();
+        }
+
+        function atualizarRotuloAnoCiclos() {
+            const rotulo = document.getElementById('cicloAnoLabel');
+            if (rotulo) rotulo.textContent = `Configuração exclusiva para ${anoAtual}`;
+        }
+
+        // === GESTÃO DE FERIADOS ===
+
+        function calcularFeriadosMoveis(ano) {
+            const a = ano % 19;
+            const b = Math.floor(ano / 100);
+            const c = ano % 100;
+            const d = Math.floor(b / 4);
+            const e = b % 4;
+            const f = Math.floor((b + 8) / 25);
+            const g = Math.floor((b - f + 1) / 3);
+            const h = (19 * a + b - d - g + 15) % 30;
+            const i = Math.floor(c / 4);
+            const k = c % 4;
+            const L = (32 + 2 * e + 2 * i - h - k) % 7;
+            const m = Math.floor((a + 11 * h + 22 * L) / 451);
+            const mesPascoa = Math.floor((h + L - 7 * m + 114) / 31);
+            const diaPascoa = ((h + L - 7 * m + 114) % 31) + 1;
+
+            const pascoa = new Date(ano, mesPascoa - 1, diaPascoa);
+            
+            const sextaSanta = new Date(pascoa);
+            sextaSanta.setDate(pascoa.getDate() - 2);
+
+            const carnaval = new Date(pascoa);
+            carnaval.setDate(pascoa.getDate() - 47);
+
+            const corpusChristi = new Date(pascoa);
+            corpusChristi.setDate(pascoa.getDate() + 60);
+
+            return {
+                [formatarDataISO(carnaval)]: "Carnaval",
+                [formatarDataISO(sextaSanta)]: "Sexta-feira Santa",
+                [formatarDataISO(corpusChristi)]: "Corpus Christi"
+            };
+        }
+
+        function carregarFeriados(ano) {
+            let feriadosDoAno = {
+                [`${ano}-01-01`]: "Confraternização Universal",
+                [`${ano}-04-21`]: "Tiradentes",
+                [`${ano}-05-01`]: "Dia do Trabalho",
+                [`${ano}-09-07`]: "Independência do Brasil",
+                [`${ano}-10-12`]: "Nossa Senhora Aparecida",
+                [`${ano}-11-02`]: "Finados",
+                [`${ano}-11-15`]: "Proclamação da República",
+                [`${ano}-12-25`]: "Natal",
+                [`${ano}-01-25`]: "Aniversário de São Paulo",
+                [`${ano}-11-20`]: "Consciência Negra"
+            };
+
+            Object.assign(feriadosDoAno, calcularFeriadosMoveis(ano));
+            
+            return feriadosDoAno;
+        }
+
+        function adicionarFeriado() {
+            const data = document.getElementById('dataFeriado').value;
+            const nome = document.getElementById('nomeFeriado').value || 'Feriado Personalizado';
+
+            if (!data) {
+                showAlert('Selecione uma data para o feriado.');
+                return;
+            }
+
+            // CORREÇÃO: new Date(data) pode ter problemas de fuso. Usar T00:00:00
+            const dataObj = new Date(data + 'T00:00:00');
+            const anoDaData = dataObj.getFullYear();
+            
+            if (anoDaData !== anoAtual) {
+                 showAlert(`A data do feriado deve ser do ano atual (${anoAtual}).`);
+                 return;
+            }
+
+            feriados[data] = nome;
+            atualizarListaFeriados();
+            gerarEscala();
+            atualizarCalendario();
+
+            document.getElementById('dataFeriado').value = '';
+            document.getElementById('nomeFeriado').value = '';
+            salvarDadosLocais();
+        }
+        
+        function atualizarListaFeriados() {
+            const lista = document.getElementById('listaFeriados');
+            lista.innerHTML = '';
+            
+            const feriadosDoAnoAtual = Object.entries(feriados).filter(([data, nome]) => {
+                // CORREÇÃO: new Date(data) pode ter problemas de fuso. Usar T00:00:00
+                return new Date(data + 'T00:00:00').getFullYear() === anoAtual;
+            });
+            
+            const feriadosOrdenados = feriadosDoAnoAtual.sort();
+            feriadosOrdenados.forEach(function([data, nome]) {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-2 rounded mb-1 text-xs flex justify-between items-center';
+                item.innerHTML = `
+                    <div>
+                        <div class="font-semibold">${formatarData(data)}</div>
+                        <div>${escapeHTML(nome)}</div>
+                    </div>
+                    <button onclick="removerFeriado('${data}')" class="text-red-500 text-xs flex items-center justify-center p-1 rounded-full hover:bg-red-100">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                lista.appendChild(item);
+            });
+        }
+        
+        function removerFeriado(data) {
+            delete feriados[data];
+            atualizarListaFeriados();
+            gerarEscala();
+            atualizarCalendario();
+            salvarDadosLocais();
+        }
+
+        // === GESTÃO DE FUNCIONÁRIOS ===
+
+        function adicionarFuncionario() {
+            const nome = document.getElementById('nomeFuncionario').value.trim();
+            const registro = document.getElementById('registroFuncionario').value.trim();
+            const telefone = document.getElementById('telefoneFuncionario').value.trim();
+            const dataInicio = document.getElementById('inicioFuncionario').value;
+
+            if (!nome || !registro || !telefone || !dataInicio) {
+                showAlert('Por favor, preencha todos os campos para adicionar um funcionário.');
+                return;
+            }
+
+            const funcionarioExistente = funcionarios.find((f, index) => f.registro === registro && index !== funcionarioEditandoIndex);
+            if (funcionarioExistente) {
+                showAlert('Já existe um funcionário com este número de registro.');
+                return;
+            }
+
+            if (funcionarioEditandoIndex !== null) {
+                const anterior = funcionarios[funcionarioEditandoIndex];
+                const atualizado = { ...anterior, nome, registro, telefone, dataInicio };
+                funcionarios[funcionarioEditandoIndex] = atualizado;
+                atualizarReferenciasFuncionario(anterior.registro, atualizado);
+                if (anterior.registro !== registro && ferias[anterior.registro]) {
+                    ferias[registro] = ferias[anterior.registro];
+                    delete ferias[anterior.registro];
+                }
+                if (anterior.registro !== registro) {
+                    Object.values(feriasPorAno).forEach(feriasDoAno => {
+                        if (!feriasDoAno?.[anterior.registro]) return;
+                        feriasDoAno[registro] = feriasDoAno[anterior.registro];
+                        delete feriasDoAno[anterior.registro];
+                    });
+                }
+            } else {
+                funcionarios.push({ nome, registro, telefone, dataInicio, dataFim: '' });
+            }
+            
+            document.getElementById('nomeFuncionario').value = '';
+            document.getElementById('registroFuncionario').value = '';
+            document.getElementById('telefoneFuncionario').value = '';
+            document.getElementById('inicioFuncionario').value = formatarDataISO(new Date());
+
+            // ORDENA A LISTA DE FUNCIONÁRIOS PELO NÚMERO DO RF
+            funcionarios.sort(compararRegistroFuncional);
+            cancelarEdicaoFuncionario(false);
+            
+            atualizarListaFuncionarios();
+            preencherSelects();
+            gerarEscala();
+            atualizarCalendario();
+            salvarDadosLocais();
+        }
+
+        function editarFuncionario(index) {
+            const func = funcionarios[index];
+            if (!func) return;
+            funcionarioEditandoIndex = index;
+            abrirGrupo('.employee-card', 'nomeFuncionario');
+            document.getElementById('nomeFuncionario').value = func.nome;
+            document.getElementById('registroFuncionario').value = func.registro;
+            document.getElementById('telefoneFuncionario').value = func.telefone;
+            document.getElementById('inicioFuncionario').value = func.dataInicio || '1900-01-01';
+            const botao = document.getElementById('salvarFuncionarioBtn');
+            botao.querySelector('span').textContent = 'Salvar alterações';
+            botao.querySelector('i').className = 'fas fa-check mr-1';
+            document.getElementById('cancelarEdicaoFuncionarioBtn').classList.remove('hidden');
+        }
+
+        function cancelarEdicaoFuncionario(limpar = true) {
+            funcionarioEditandoIndex = null;
+            const botao = document.getElementById('salvarFuncionarioBtn');
+            botao.querySelector('span').textContent = 'Adicionar funcionário';
+            botao.querySelector('i').className = 'fas fa-plus mr-1';
+            document.getElementById('cancelarEdicaoFuncionarioBtn').classList.add('hidden');
+            if (limpar) {
+                document.getElementById('nomeFuncionario').value = '';
+                document.getElementById('registroFuncionario').value = '';
+                document.getElementById('telefoneFuncionario').value = '';
+                document.getElementById('inicioFuncionario').value = formatarDataISO(new Date());
+            }
+        }
+
+        function atualizarReferenciasFuncionario(registroAnterior, atualizado) {
+            const atualizarColecao = colecao => Object.values(colecao || {}).forEach(item => {
+                const funcionario = item?.funcionario || item;
+                if (funcionario?.registro === registroAnterior) {
+                    if (item?.funcionario) item.funcionario = atualizado;
+                    else Object.assign(item, atualizado);
+                }
+            });
+            atualizarColecao(trocasManuais);
+            atualizarColecao(escalaFimAno);
+            atualizarColecao(escalaAtual);
+            Object.values(trocasPorAno).forEach(atualizarColecao);
+            Object.values(fimAnoPorAno).forEach(atualizarColecao);
+        }
+
+        function removerFuncionario(index) {
+            const funcionario = funcionarios[index];
+            if (!funcionario) return;
+            funcionarioEmDesligamento = funcionario;
+            desligamentoNome.textContent = funcionario.nome;
+            dataDesligamento.min = funcionario.dataInicio || '';
+            dataDesligamento.value = funcionario.dataFim || formatarDataISO(new Date());
+            desligamentoModal.classList.remove('hidden');
+        }
+
+        function fecharModalDesligamento() {
+            desligamentoModal.classList.add('hidden');
+            funcionarioEmDesligamento = null;
+        }
+
+        function confirmarDesligamento() {
+            if (!funcionarioEmDesligamento || !dataDesligamento.value) {
+                showAlert('Informe a data a partir da qual o funcionário não deve ser escalado.');
+                return;
+            }
+            if (dataDesligamento.value <= (funcionarioEmDesligamento.dataInicio || '1900-01-01')) {
+                showAlert('A data de desligamento deve ser posterior à data de entrada.');
+                return;
+            }
+            funcionarioEmDesligamento.dataFim = dataDesligamento.value;
+            fecharModalDesligamento();
+            atualizarListaFuncionarios();
+            preencherSelects();
+            gerarEscala();
+            atualizarCalendario();
+            salvarDadosLocais();
+        }
+
+        function atualizarListaFuncionarios() {
+            const lista = document.getElementById('listaFuncionarios');
+            lista.innerHTML = '';
+            
+            funcionarios.forEach((func, index) => {
+                const item = document.createElement('div');
+                item.className = 'bg-white p-2 rounded mb-1 text-xs flex justify-between items-center';
+                item.setAttribute('draggable', 'false');
+                item.setAttribute('data-index', index);
+                
+                const hoje = formatarDataISO(new Date());
+                const status = func.dataFim && hoje >= func.dataFim ? 'inactive' : (func.dataInicio && hoje < func.dataInicio ? 'scheduled' : 'active');
+                const statusTexto = status === 'inactive' ? 'Inativo' : (status === 'scheduled' ? 'Entrada agendada' : 'Ativo');
+                const periodo = `${func.dataInicio && func.dataInicio !== '1900-01-01' ? 'Desde ' + formatarData(func.dataInicio) : 'Histórico completo'}${func.dataFim ? ' · até ' + formatarData(func.dataFim) : ''}`;
+                item.innerHTML = `
+                    <div>
+                        <div class="font-semibold">${escapeHTML(func.nome)}</div>
+                        <div>RF ${escapeHTML(func.registro)}</div>
+                        <div class="employee-meta">${periodo}</div>
+                        <span class="status-pill status-${status}">${statusTexto}</span>
+                    </div>
+                    <div class="action-row">
+                        <button onclick="editarFuncionario(${index})" title="Editar funcionário" class="text-blue-600 text-xs p-2 hover:bg-blue-50"><i class="fas fa-pen"></i></button>
+                        <button onclick="removerFuncionario(${index})" title="Definir data de desligamento" class="text-amber-600 text-xs p-2 hover:bg-amber-50"><i class="fas fa-user-clock"></i></button>
+                    </div>
+                `;
+                
+                lista.appendChild(item);
+            });
+            document.getElementById('totalFuncionarios').textContent = `${funcionarios.length} ${funcionarios.length === 1 ? 'pessoa' : 'pessoas'}`;
+        }
+
+        // === PREENCHIMENTO DE SELECTS ===
+
+        function preencherSelects() {
+            funcionarios.sort(compararRegistroFuncional);
+            preencherSelectFuncionarios();
+            preencherSelectCiclos();
+            preencherSelectMeses();
+        }
+
+        function compararRegistroFuncional(a, b) {
+            const registroA = String(a.registro || '').replace(/\D/g, '');
+            const registroB = String(b.registro || '').replace(/\D/g, '');
+            return registroA.localeCompare(registroB, 'pt-BR', { numeric: true, sensitivity: 'base' });
+        }
+        
+        function preencherSelectFuncionarios() {
+            const select = document.getElementById('funcionarioFerias');
+            select.innerHTML = '<option value="">Selecionar Funcionário</option>';
+            funcionarios.forEach((func, index) => {
+                const option = document.createElement('option');
+                // CORREÇÃO: Usar 'registro' como valor, não o índice
+                option.value = func.registro; 
+                option.textContent = func.nome;
+                select.appendChild(option);
+            });
+        }
+
+        function preencherSelectCiclos() {
+            const selectDiaSemana = document.getElementById('cicloDiaSemanaInicio');
+            const selectFimSemana = document.getElementById('cicloFimSemanaInicio');
+            const selectFeriados = document.getElementById('cicloFeriadosInicio');
+
+            selectDiaSemana.innerHTML = '<option value="">Selecionar Funcionário</option>';
+            selectFimSemana.innerHTML = '<option value="">Selecionar Funcionário</option>';
+            selectFeriados.innerHTML = '<option value="">Selecionar Funcionário</option>';
+
+            funcionarios.forEach((func, index) => {
+                const option1 = document.createElement('option');
+                option1.value = index; // Ciclos ainda usam índice, está OK
+                option1.textContent = func.nome;
+                selectDiaSemana.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = index;
+                option2.textContent = func.nome;
+                selectFimSemana.appendChild(option2);
+
+                const option3 = document.createElement('option');
+                option3.value = index;
+                option3.textContent = func.nome;
+                selectFeriados.appendChild(option3);
+            });
+
+            selectDiaSemana.value = indiceDiaSemana;
+            selectFimSemana.value = indiceFinalSemana;
+            selectFeriados.value = indiceFeriado;
+        }
+        
+        function preencherSelectMeses() {
+            const select = document.getElementById('mesExportar');
+            const meses = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            select.innerHTML = '';
+            meses.forEach((mes, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${mes} ${anoAtual}`;
+                select.appendChild(option);
+            });
+        }
+
+        function preencherAssignModalFuncionario(dataStr) {
+            assignModalFuncionario.innerHTML = '<option value="">Selecionar Funcionário</option>';
+            funcionarios.forEach((func, index) => {
+                if (!funcionarioAtivoNaData(func, dataStr) || estaEmFerias(func, dataStr)) return;
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = func.nome;
+                assignModalFuncionario.appendChild(option);
+            });
+        }
+        
+        // === GESTÃO DE FÉRIAS (REATORADA) ===
+
+        function adicionarFerias() {
+            // CORREÇÃO: Obter 'registro' do select, não o índice
+            const registroFuncionario = document.getElementById('funcionarioFerias').value;
+            const inicio = document.getElementById('inicioFerias').value;
+            const fim = document.getElementById('fimFerias').value;
+
+            if (!registroFuncionario || !inicio || !fim) {
+                showAlert('Preencha todos os campos de férias.');
+                return;
+            }
+            if (fim < inicio) {
+                showAlert('A data final das férias não pode ser anterior à data inicial.');
+                return;
+            }
+            const conflito = (ferias[registroFuncionario] || []).some((periodo, index) => {
+                const sendoEditado = feriasEditando && feriasEditando.registro === registroFuncionario && feriasEditando.index === index;
+                return !sendoEditado && inicio <= periodo.fim && fim >= periodo.inicio;
+            });
+            if (conflito) {
+                showAlert('Este período se sobrepõe a férias já cadastradas para o funcionário.');
+                return;
+            }
+            const funcionario = funcionarios.find(f => f.registro === registroFuncionario);
+            if (!funcionarioAtivoNaData(funcionario, inicio) || !funcionarioAtivoNaData(funcionario, fim)) {
+                showAlert('O período de férias deve estar dentro da vigência do funcionário.');
+                return;
+            }
+
+            // CORREÇÃO: Usar 'registro' como chave
+            if (!ferias[registroFuncionario]) {
+                ferias[registroFuncionario] = [];
+            }
+
+            if (feriasEditando) {
+                const origem = feriasEditando;
+                if (origem.registro !== registroFuncionario) {
+                    ferias[origem.registro].splice(origem.index, 1);
+                    if (!ferias[origem.registro].length) delete ferias[origem.registro];
+                    ferias[registroFuncionario].push({ inicio, fim });
+                } else {
+                    ferias[registroFuncionario][origem.index] = { inicio, fim };
+                }
+            } else {
+                ferias[registroFuncionario].push({inicio, fim});
+            }
+            atualizarListaFerias();
+            gerarEscala();
+            atualizarCalendario();
+
+            document.getElementById('funcionarioFerias').value = '';
+            document.getElementById('inicioFerias').value = '';
+            document.getElementById('fimFerias').value = '';
+            cancelarEdicaoFerias(false);
+            salvarDadosLocais();
+        }
+
+        function editarFerias(registro, index) {
+            const periodo = ferias[registro]?.[index];
+            if (!periodo) return;
+            feriasEditando = { registro, index };
+            abrirGrupo('.vacation-card', 'funcionarioFerias');
+            document.getElementById('funcionarioFerias').value = registro;
+            document.getElementById('inicioFerias').value = periodo.inicio;
+            document.getElementById('fimFerias').value = periodo.fim;
+            const botao = document.getElementById('salvarFeriasBtn');
+            botao.querySelector('span').textContent = 'Salvar alterações';
+            botao.querySelector('i').className = 'fas fa-check mr-1';
+            document.getElementById('cancelarEdicaoFeriasBtn').classList.remove('hidden');
+        }
+
+        function cancelarEdicaoFerias(limpar = true) {
+            feriasEditando = null;
+            const botao = document.getElementById('salvarFeriasBtn');
+            botao.querySelector('span').textContent = 'Adicionar férias';
+            botao.querySelector('i').className = 'fas fa-plus mr-1';
+            document.getElementById('cancelarEdicaoFeriasBtn').classList.add('hidden');
+            if (limpar) {
+                document.getElementById('funcionarioFerias').value = '';
+                document.getElementById('inicioFerias').value = '';
+                document.getElementById('fimFerias').value = '';
+            }
+        }
+
+        function atualizarListaFerias() {
+            const lista = document.getElementById('listaFerias');
+            lista.innerHTML = '';
+            
+            // CORREÇÃO: Iterar sobre 'ferias' usando 'registro'
+            for (const [registro, periodos] of Object.entries(ferias)) {
+                const funcionario = funcionarios.find(f => f.registro === registro);
+                if (funcionario) {
+                    periodos.forEach((periodo, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'bg-white p-2 rounded mb-1 text-xs';
+                        item.innerHTML = `
+                            <div class="font-semibold">${escapeHTML(funcionario.nome)}</div>
+                            <div>${formatarData(periodo.inicio)} - ${formatarData(periodo.fim)}</div>
+                            <div class="action-row mt-2">
+                                <button onclick="editarFerias('${registro}', ${index})" class="text-blue-600 text-xs p-1"><i class="fas fa-pen mr-1"></i>Editar</button>
+                                <button onclick="removerFerias('${registro}', ${index})" class="text-red-500 text-xs p-1"><i class="fas fa-trash mr-1"></i>Remover</button>
+                            </div>
+                        `;
+                        lista.appendChild(item);
+                    });
+                }
+            }
+            const total = Object.values(ferias).reduce((soma, periodos) => soma + periodos.length, 0);
+            document.getElementById('totalFerias').textContent = `${total} ${total === 1 ? 'período' : 'períodos'}`;
+        }
+
+        function removerFerias(registro, periodoIndex) {
+            // CORREÇÃO: Acessar férias pelo 'registro'
+            ferias[registro].splice(periodoIndex, 1);
+            if (ferias[registro].length === 0) {
+                delete ferias[registro];
+            }
+            atualizarListaFerias();
+            gerarEscala();
+            atualizarCalendario();
+            if (feriasEditando?.registro === registro && feriasEditando?.index === periodoIndex) cancelarEdicaoFerias();
+            salvarDadosLocais();
+        }
+
+        function estaEmFerias(funcionario, data) {
+            // CORREÇÃO: Verificar férias pelo 'registro' do funcionário
+            if (!funcionario || !ferias[funcionario.registro]) {
+                 return false;
+            }
+            
+            const dataComparacao = new Date(data + 'T00:00:00');
+            return ferias[funcionario.registro].some(periodo => {
+                const inicio = new Date(periodo.inicio + 'T00:00:00');
+                const fim = new Date(periodo.fim + 'T00:00:00');
+                return dataComparacao >= inicio && dataComparacao <= fim;
+            });
+        }
+        
+        // === GERAÇÃO DA ESCALA ===
+
+        function obterProximoFuncionario(tipo, data) {
+            const elegiveis = funcionarios.filter(funcionario => funcionarioAtivoNaData(funcionario, data));
+            if (elegiveis.length === 0) {
+                return null;
+            }
+
+            let indice, tentativas = 0;
+            
+            if (tipo === 'semana') {
+                indice = indiceDiaSemana;
+            } else if (tipo === 'fimSemana') {
+                indice = indiceFinalSemana;
+            } else {
+                indice = indiceFeriado;
+            }
+            if (inicioCicloPendente[tipo]) {
+                const indiceSelecionado = elegiveis.findIndex(funcionario => funcionario.registro === registrosInicioCiclo[tipo]);
+                if (indiceSelecionado >= 0) indice = indiceSelecionado;
+                inicioCicloPendente[tipo] = false;
+            }
+            
+            indice = indice % elegiveis.length;
+            while (tentativas < elegiveis.length) {
+                const funcionario = elegiveis[indice];
+                // CORREÇÃO: Passar o objeto 'funcionario' para 'estaEmFerias'
+                if (funcionario && !estaEmFerias(funcionario, data)) {
+                    if (tipo === 'semana') {
+                        indiceDiaSemana = (indice + 1) % elegiveis.length;
+                    } else if (tipo === 'fimSemana') {
+                        indiceFinalSemana = (indice + 1) % elegiveis.length;
+                    } else {
+                        indiceFeriado = (indice + 1) % elegiveis.length;
+                    }
+                    return funcionario; // Retorna o objeto funcionário
+                }
+                indice = (indice + 1) % elegiveis.length;
+                tentativas++;
+            }
+            
+            // Fallback: retorna o primeiro funcionário que não esteja de férias
+            const primeiroValido = elegiveis.find(f => !estaEmFerias(f, data));
+            return primeiroValido || null; // Retorna nulo se todos estiverem de férias
+        }
+        
+        function gerarEscala() {
+            if (funcionarios.length === 0) {
+                escalaAtual = {};
+                return;
+            }
+
+            const inicioDiaSemana = parseInt(document.getElementById('cicloDiaSemanaInicio').value) || 0;
+            const inicioFinalSemana = parseInt(document.getElementById('cicloFimSemanaInicio').value) || 0;
+            const inicioFeriado = parseInt(document.getElementById('cicloFeriadosInicio').value) || 0;
+            registrosInicioCiclo = {
+                semana: funcionarios[inicioDiaSemana]?.registro,
+                fimSemana: funcionarios[inicioFinalSemana]?.registro,
+                feriado: funcionarios[inicioFeriado]?.registro
+            };
+            inicioCicloPendente = { semana: true, fimSemana: true, feriado: true };
+            indiceDiaSemana = inicioDiaSemana;
+            indiceFinalSemana = inicioFinalSemana;
+            indiceFeriado = inicioFeriado;
+
+            escalaAtual = {};
+            
+            for (let mes = 0; mes < 12; mes++) {
+                const diasNoMes = new Date(anoAtual, mes + 1, 0).getDate();
+                
+                for (let dia = 1; dia <= diasNoMes; dia++) {
+                    const data = new Date(anoAtual, mes, dia);
+                    const dataStr = formatarDataISO(data);
+                    const diaSemana = data.getDay();
+                    
+                    let funcionario;
+                    let tipo;
+
+                    if (isFimAno(dataStr)) {
+                         if (escalaFimAno[dataStr]) {
+                             funcionario = escalaFimAno[dataStr].funcionario;
+                             tipo = 'fimDeAno';
+                         } else {
+                            tipo = 'fimDeAno';
+                            funcionario = null;
+                         }
+                    }
+                    else if (feriados[dataStr]) {
+                        tipo = 'feriado';
+                        funcionario = obterProximoFuncionario('feriado', dataStr);
+                    }
+                    else if (diaSemana === 0 || diaSemana === 6) {
+                        tipo = 'fimSemana';
+                        funcionario = obterProximoFuncionario('fimSemana', dataStr);
+                    }
+                    else {
+                        tipo = 'semana';
+                        funcionario = obterProximoFuncionario('semana', dataStr);
+                    }
+                    
+                    escalaAtual[dataStr] = {
+                        funcionario: funcionario, // Agora é o objeto completo
+                        tipo: tipo,
+                        data: data
+                    };
+                }
+            }
+            
+            for (const data in trocasManuais) {
+                if (escalaAtual[data]) {
+                    escalaAtual[data].funcionario = trocasManuais[data];
+                }
+            }
+
+            validarPlantõesConsecutivos();
+            // Mantém os pontos iniciais escolhidos; os índices de cálculo são temporários.
+            indiceDiaSemana = inicioDiaSemana;
+            indiceFinalSemana = inicioFinalSemana;
+            indiceFeriado = inicioFeriado;
+        }
+
+        function validarPlantõesConsecutivos() {
+            const datas = Object.keys(escalaAtual).sort();
+            const prioridade = { semana: 3, feriado: 2, fimSemana: 1, fimDeAno: 4 };
+
+            const conflitoNoIndice = indice => {
+                if (indice < 1 || indice >= datas.length) return false;
+                const anterior = escalaAtual[datas[indice - 1]]?.funcionario;
+                const atual = escalaAtual[datas[indice]]?.funcionario;
+                return anterior && atual && anterior.registro === atual.registro;
+            };
+
+            const trocaValida = (indiceA, indiceB) => {
+                const escalaA = escalaAtual[datas[indiceA]];
+                const escalaB = escalaAtual[datas[indiceB]];
+                const funcionarioA = escalaA?.funcionario;
+                const funcionarioB = escalaB?.funcionario;
+                if (!funcionarioA || !funcionarioB || funcionarioA.registro === funcionarioB.registro) return false;
+                if (!funcionarioAtivoNaData(funcionarioA, datas[indiceB]) || estaEmFerias(funcionarioA, datas[indiceB])) return false;
+                if (!funcionarioAtivoNaData(funcionarioB, datas[indiceA]) || estaEmFerias(funcionarioB, datas[indiceA])) return false;
+
+                escalaA.funcionario = funcionarioB;
+                escalaB.funcionario = funcionarioA;
+                const vizinhos = new Set([indiceA - 1, indiceA, indiceA + 1, indiceB - 1, indiceB, indiceB + 1]);
+                const valido = [...vizinhos].every(indice => !conflitoNoIndice(indice));
+                escalaA.funcionario = funcionarioA;
+                escalaB.funcionario = funcionarioB;
+                return valido;
+            };
+
+            const trocar = (indiceA, indiceB) => {
+                const funcionario = escalaAtual[datas[indiceA]].funcionario;
+                escalaAtual[datas[indiceA]].funcionario = escalaAtual[datas[indiceB]].funcionario;
+                escalaAtual[datas[indiceB]].funcionario = funcionario;
+            };
+
+            // Reinicia a varredura após cada inversão para tratar eventuais efeitos em cadeia.
+            for (let tentativa = 0; tentativa < datas.length * 3; tentativa++) {
+                let corrigiu = false;
+                for (let i = 1; i < datas.length; i++) {
+                    if (!conflitoNoIndice(i)) continue;
+                    const anterior = escalaAtual[datas[i - 1]];
+                    const atual = escalaAtual[datas[i]];
+                    if ((prioridade[atual.tipo] || 0) > (prioridade[anterior.tipo] || 0)) {
+                        // O ciclo atual tem prioridade: mantém o dia atual e inverte o anterior para trás.
+                        for (let candidato = i - 2; candidato >= 0; candidato--) {
+                            if (trocaValida(i - 1, candidato)) {
+                                trocar(i - 1, candidato);
+                                corrigiu = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        // Mantém o primeiro plantão e leva o funcionário repetido para a próxima posição possível.
+                        for (let candidato = i + 1; candidato < datas.length; candidato++) {
+                            if (trocaValida(i, candidato)) {
+                                trocar(i, candidato);
+                                corrigiu = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (corrigiu) break;
+                }
+                if (!corrigiu) break;
+            }
+
+            const conflitosRestantes = datas.filter((_, indice) => conflitoNoIndice(indice));
+            if (conflitosRestantes.length) {
+                console.warn('Não foi possível eliminar todos os plantões consecutivos apenas com inversões.', conflitosRestantes);
+            }
+        }
+        
+        // === GESTÃO DE FIM DE ANO ===
+
+        function getPeriodosFimAno(ano) {
+            const natal = new Date(ano, 11, 25);
+            let primeiraSegundaPreNatal = new Date(natal);
+            primeiraSegundaPreNatal.setDate(natal.getDate() - (natal.getDay() === 1 ? 7 : (natal.getDay() + 6) % 7));
+            
+            const fimPeriodo1 = new Date(primeiraSegundaPreNatal);
+            fimPeriodo1.setDate(primeiraSegundaPreNatal.getDate() + 6);
+            
+            let segundaPosPeriodo1 = new Date(fimPeriodo1);
+            segundaPosPeriodo1.setDate(fimPeriodo1.getDate() + 1);
+
+            const fimPeriodo2 = new Date(segundaPosPeriodo1);
+            fimPeriodo2.setDate(segundaPosPeriodo1.getDate() + 6);
+            
+            return {
+                periodo1: { inicio: formatarDataISO(primeiraSegundaPreNatal), fim: formatarDataISO(fimPeriodo1) },
+                periodo2: { inicio: formatarDataISO(segundaPosPeriodo1), fim: formatarDataISO(fimPeriodo2) }
+            };
+        }
+        
+        function getPeriodoInicioAno(ano) {
+            const primeiroDeJaneiro = new Date(ano, 0, 1);
+            let primeiroDomingo = new Date(primeiroDeJaneiro);
+            primeiroDomingo.setDate(primeiroDeJaneiro.getDate() + (7 - primeiroDeJaneiro.getDay()));
+            return {
+                inicio: formatarDataISO(primeiroDeJaneiro),
+                fim: formatarDataISO(primeiroDomingo)
+            };
+        }
+        
+        function isFimAno(dataStr) {
+            const data = new Date(dataStr + 'T00:00:00');
+            const anoData = data.getFullYear();
+
+            const { periodo1, periodo2 } = getPeriodosFimAno(anoData);
+            const inicio1 = new Date(periodo1.inicio + 'T00:00:00');
+            const fim1 = new Date(periodo1.fim + 'T00:00:00');
+            const inicio2 = new Date(periodo2.inicio + 'T00:00:00');
+            const fim2 = new Date(periodo2.fim + 'T00:00:00');
+            
+            const periodoInicioAno = getPeriodoInicioAno(anoData);
+            const inicioAno = new Date(periodoInicioAno.inicio + 'T00:00:00');
+            const fimAno = new Date(periodoInicioAno.fim + 'T00:00:00');
+
+            return (data >= inicio1 && data <= fim1) || (data >= inicio2 && data <= fim2) || (data >= inicioAno && data <= fimAno);
+        }
+
+        function showAssignModal(dataStr) {
+            assignModalDate.textContent = `Atribuir plantão para: ${formatarData(dataStr)}`;
+            preencherAssignModalFuncionario(dataStr);
+            assignModal.classList.remove('hidden');
+
+            assignModalOkBtn.onclick = () => {
+                const funcionarioIndex = assignModalFuncionario.value;
+                if (funcionarioIndex === "") {
+                    delete escalaFimAno[dataStr];
+                } else {
+                    const funcionario = funcionarios[funcionarioIndex];
+                    escalaFimAno[dataStr] = { funcionario, data: new Date(dataStr) };
+                }
+                assignModal.classList.add('hidden');
+                gerarEscala();
+                atualizarCalendario();
+                salvarDadosLocais();
+            }
+        }
+        
+        function toggleFeriado(dataStr) {
+            if (feriados[dataStr]) {
+                delete feriados[dataStr];
+            } else {
+                feriados[dataStr] = "Feriado";
+            }
+            atualizarListaFeriados();
+            gerarEscala();
+            atualizarCalendario();
+            salvarDadosLocais();
+        }
+
+        // === ATUALIZAÇÃO DO CALENDÁRIO (UI) ===
+
+        function atualizarCalendario() {
+            const calendario = document.getElementById('calendario');
+            const mesAtualEl = document.getElementById('mesAtual');
+            
+            const meses = [
+                'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+            ];
+            
+            mesAtualEl.textContent = `${meses[mesAtualIndex]} ${anoAtual}`;
+            
+            calendario.innerHTML = '';
+            
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            diasSemana.forEach(dia => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'text-center font-bold p-2 bg-gray-200';
+                headerDiv.textContent = dia;
+                calendario.appendChild(headerDiv);
+            });
+            
+            const primeiroDia = new Date(anoAtual, mesAtualIndex, 1);
+            const primeiroDiaSemana = primeiroDia.getDay();
+            
+            for (let i = 0; i < primeiroDiaSemana; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'p-2 border border-gray-200 h-20 md:h-24';
+                calendario.appendChild(emptyDiv);
+            }
+            
+            const diasNoMes = new Date(anoAtual, mesAtualIndex + 1, 0).getDate();
+            
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                const data = new Date(anoAtual, mesAtualIndex, dia);
+                const dataStr = formatarDataISO(data);
+                const escala = escalaAtual[dataStr];
+                
+                const diaDiv = document.createElement('div');
+                diaDiv.className = 'p-2 h-20 md:h-24 border cursor-pointer transition-all hover:bg-gray-50 flex flex-col justify-between items-start calendar-day-content';
+                diaDiv.draggable = true;
+                diaDiv.dataset.data = dataStr;
+                
+                let corFundo = 'bg-white';
+                const funcionario = escala?.funcionario;
+
+                if (funcionario) {
+                    // CORREÇÃO: Passar o objeto 'funcionario'
+                    if (estaEmFerias(funcionario, dataStr)) {
+                        corFundo = 'bg-gray-200 border-gray-400';
+                    } else if (isFimAno(dataStr)) {
+                         if (escalaFimAno[dataStr]) {
+                             corFundo = 'bg-purple-200 border-purple-400';
+                         } else {
+                             corFundo = 'bg-green-100 border-green-300';
+                         }
+                    } else if (feriados[dataStr]) {
+                        corFundo = 'bg-red-100 border-red-300';
+                    } else if (escala.tipo === 'fimSemana') {
+                        corFundo = 'bg-green-100 border-green-300';
+                    } else {
+                        corFundo = 'bg-blue-100 border-blue-300';
+                    }
+                }
+                
+                diaDiv.className += ` ${corFundo}`;
+                
+                let conteudo = `<div class="font-bold text-sm mb-1">${dia}</div>`;
+                
+                if (isFimAno(dataStr) && escalaFimAno[dataStr]) {
+                    conteudo = `<div class="font-bold text-sm mb-1">${dia}</div>`;
+                    conteudo += `<div class="text-xs font-semibold">
+                                    <span class="sm:hidden fiscal-name-mobile">${escapeHTML(escalaFimAno[dataStr].funcionario.nome.split(' ')[0])}</span>
+                                    <span class="hidden sm:inline">${escapeHTML(escalaFimAno[dataStr].funcionario.nome)}</span>
+                                 </div>`;
+                    conteudo += `<div class="text-xs text-gray-600 hidden sm:block">RF ${escalaFimAno[dataStr].funcionario.registro}</div>`; 
+                } else if (funcionario) {
+                    const primeiroNome = funcionario.nome.split(' ')[0];
+                    // CORREÇÃO: Passar o objeto 'funcionario'
+                    if (estaEmFerias(funcionario, dataStr)) {
+                        conteudo += `<div class="text-xs text-gray-500 font-semibold">${escapeHTML(primeiroNome)} (FÉRIAS)</div>`;
+                    } else {
+                        conteudo += `<div class="text-xs font-semibold">
+                                     <span class="sm:hidden fiscal-name-mobile">${escapeHTML(primeiroNome)}</span>
+                                        <span class="hidden sm:inline">${escapeHTML(funcionario.nome)}</span>
+                                     </div>`;
+                        conteudo += `<div class="text-xs text-gray-600 hidden sm:block">RF ${funcionario.registro}</div>`;
+                    }
+                }
+                
+                if (feriados[dataStr]) {
+                    conteudo += `<div class="text-xs text-red-600 font-bold hidden sm:block">${escapeHTML(feriados[dataStr])}</div>`;
+                }
+
+                if (isFimAno(dataStr)) {
+                     conteudo += `<div class="text-xs text-purple-600 font-bold hidden sm:block">Fim de Ano</div>`;
+                }
+
+
+                diaDiv.innerHTML = conteudo;
+                
+                diaDiv.addEventListener('dragstart', handleDragStart);
+                diaDiv.addEventListener('dragover', handleDragOver);
+                diaDiv.addEventListener('drop', handleDrop);
+
+                diaDiv.addEventListener('click', () => {
+                    if (isFimAno(dataStr)) {
+                        showAssignModal(dataStr);
+                    } else {
+                        toggleFeriado(dataStr);
+                    }
+                });
+                
+                calendario.appendChild(diaDiv);
+            }
+        }
+        
+        // === DRAG AND DROP ===
+        
+        let draggedElement = null;
+        let draggedItem = null; // Para a lista de funcionários
+
+        // Funções de Drag da Lista de Funcionários
+        function handleDragStart(e) {
+            const target = e.target.closest('[draggable="true"]');
+            
+            // Verifica se é um item da lista ou do calendário
+            if (target.dataset.index) { // Item da lista
+                draggedItem = target;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.index);
+            } else if (target.dataset.data) { // Item do calendário
+                draggedElement = target;
+                e.dataTransfer.setData('text/plain', e.target.dataset.data);
+                e.target.style.opacity = '0.5';
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const target = e.target.closest('[draggable="true"][data-index]'); // Alvo é item da lista
+            if (target && draggedItem && draggedItem !== target) {
+                const targetRect = target.getBoundingClientRect();
+                const isAfter = e.clientY > targetRect.top + targetRect.height / 2;
+                if (isAfter) {
+                    target.style.borderBottom = '2px solid #667eea';
+                    target.style.borderTop = '';
+                } else {
+                    target.style.borderTop = '2px solid #667eea';
+                    target.style.borderBottom = '';
+                }
+            }
+        }
+        
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const target = e.target.closest('[draggable="true"][data-index]');
+            if (target) {
+                target.classList.add('drag-target');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const target = e.target.closest('[draggable="true"][data-index]');
+            if (target) {
+                target.classList.remove('drag-target');
+                target.style.borderTop = '';
+                target.style.borderBottom = '';
+            }
+        }
+
+        function handleListDrop(e) {
+            e.preventDefault();
+            const targetElement = e.target.closest('[draggable="true"][data-index]');
+            
+            if (draggedItem && draggedItem !== targetElement) {
+                const fromIndex = parseInt(draggedItem.dataset.index);
+                const toIndex = targetElement ? parseInt(targetElement.dataset.index) : -1;
+                
+                if (toIndex !== -1 && fromIndex !== toIndex) {
+                    const [removed] = funcionarios.splice(fromIndex, 1);
+                    funcionarios.splice(toIndex, 0, removed);
+                    
+                    atualizarListaFuncionarios();
+                    preencherSelects();
+                    atualizarRotuloAnoCiclos();
+                    gerarEscala();
+                    atualizarCalendario();
+                    salvarDadosLocais();
+                }
+            }
+
+            if (draggedItem) {
+                draggedItem.style.opacity = '1';
+                // Limpa bordas de todos os itens
+                document.querySelectorAll('#listaFuncionarios [draggable="true"]').forEach(el => {
+                    el.style.borderTop = '';
+                    el.style.borderBottom = '';
+                    el.classList.remove('drag-target');
+                });
+                draggedItem = null;
+            }
+        }
+        
+        // Listeners do container da lista
+        document.getElementById('listaFuncionarios').addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.getElementById('listaFuncionarios').addEventListener('dragleave', (e) => {
+            // Se sair do container, limpa as bordas
+            if (e.target.id === 'listaFuncionarios') {
+                 document.querySelectorAll('#listaFuncionarios [draggable="true"]').forEach(el => {
+                    el.style.borderTop = '';
+                    el.style.borderBottom = '';
+                });
+            }
+        });
+
+        document.getElementById('listaFuncionarios').addEventListener('drop', (e) => {
+            e.preventDefault();
+            // Se soltar no container (mas não em um item), trata como soltar no final
+            if (e.target.id === 'listaFuncionarios' && draggedItem) {
+                const fromIndex = parseInt(draggedItem.dataset.index);
+                const [removed] = funcionarios.splice(fromIndex, 1);
+                funcionarios.push(removed); // Adiciona ao final
+
+                atualizarListaFuncionarios();
+                preencherSelects();
+                gerarEscala();
+                atualizarCalendario();
+                salvarDadosLocais();
+
+                draggedItem.style.opacity = '1';
+                draggedItem = null;
+            } else {
+                handleListDrop(e); // Deixa a função normal tratar
+            }
+        });
+
+        // Função de Drop do Calendário
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            if (draggedElement && draggedElement !== e.target) {
+                const dataOrigem = draggedElement.dataset.data;
+                const dataDestino = e.target.closest('[data-data]')?.dataset.data;
+                
+                if (dataOrigem && dataDestino && escalaAtual[dataOrigem] && escalaAtual[dataDestino]) {
+                    // Não permite troca com dias de férias
+                    const funcOrigem = escalaAtual[dataOrigem].funcionario;
+                    const funcDestino = escalaAtual[dataDestino].funcionario;
+                    
+                    if (funcOrigem && estaEmFerias(funcOrigem, dataDestino)) {
+                        showAlert(`${funcOrigem.nome} estará de férias no dia ${formatarData(dataDestino)}.`);
+                    } else if (funcDestino && estaEmFerias(funcDestino, dataOrigem)) {
+                        showAlert(`${funcDestino.nome} estará de férias no dia ${formatarData(dataOrigem)}.`);
+                    } else if ((!funcOrigem || funcionarioAtivoNaData(funcOrigem, dataDestino)) && (!funcDestino || funcionarioAtivoNaData(funcDestino, dataOrigem))) {
+                        // Troca manual
+                        escalaAtual[dataOrigem].funcionario = funcDestino;
+                        escalaAtual[dataDestino].funcionario = funcOrigem;
+                        
+                        trocasManuais[dataOrigem] = funcDestino;
+                        trocasManuais[dataDestino] = funcOrigem;
+
+                        atualizarCalendario();
+                        salvarDadosLocais();
+                    } else {
+                        showAlert('A troca não é possível porque um dos funcionários não estava ativo na data de destino.');
+                    }
+                }
+            }
+            
+            if (draggedElement) {
+                draggedElement.style.opacity = '1';
+                draggedElement = null;
+            }
+        }
+        
+        function limparTrocasManuais() {
+            trocasManuais = {};
+        }
+
+        // === NAVEGAÇÃO DE DATAS ===
+
+        function mesAnterior() {
+            salvarEstadoAno(anoAtual);
+            mesAtualIndex = (mesAtualIndex - 1 + 12) % 12;
+            if (mesAtualIndex === 11) {
+                anoAtual--;
+                carregarEstadoAno(anoAtual);
+            }
+            gerarEscala();
+            atualizarCalendario();
+            preencherSelectMeses();
+            atualizarListaFeriados();
+            salvarDadosLocais();
+        }
+
+        function proximoMes() {
+            salvarEstadoAno(anoAtual);
+            mesAtualIndex = (mesAtualIndex + 1) % 12;
+            if (mesAtualIndex === 0) {
+                anoAtual++;
+                carregarEstadoAno(anoAtual);
+            }
+            gerarEscala();
+            atualizarCalendario();
+            preencherSelectMeses();
+            atualizarListaFeriados();
+            salvarDadosLocais();
+        }
+
+        function anoAnterior() {
+            salvarEstadoAno(anoAtual);
+            anoAtual--;
+            carregarEstadoAno(anoAtual);
+            gerarEscala();
+            atualizarCalendario();
+            preencherSelectMeses();
+            atualizarListaFeriados();
+            salvarDadosLocais();
+        }
+
+        function proximoAno() {
+            salvarEstadoAno(anoAtual);
+            anoAtual++;
+            carregarEstadoAno(anoAtual);
+            gerarEscala();
+            atualizarCalendario();
+            preencherSelectMeses();
+            atualizarListaFeriados();
+            salvarDadosLocais();
+        }
+        
+        // === FUNÇÕES UTILITÁRIAS DE DATA ===
+        
+        function formatarData(dataStr) {
+            const data = new Date(dataStr + 'T00:00:00'); // Garante fuso horário local
+            return data.toLocaleDateString('pt-BR');
+        }
+
+        function formatarDataISO(data) {
+            const ano = data.getFullYear();
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const dia = String(data.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+        
+        function formatarDataExterna(data) {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            return data.toLocaleDateString('pt-BR', options);
+        }
+
+        // === EXPORTAÇÃO ===
+
+        function exportarDiarioOficial() {
+            const mesEscolhido = document.getElementById('mesExportar').value;
+            const formato = document.getElementById('formatoExportar').value;
+            
+            if (mesEscolhido === '') {
+                showAlert('Selecione um mês para exportar.');
+                return;
+            }
+            
+            const dados = obterDadosMes(parseInt(mesEscolhido));
+            const colunas = ['Dia', 'Dia da Semana', 'Nome do Fiscal', 'Nº Registro'];
+            
+            if (formato === 'pdf') {
+                exportarPDF(dados, colunas, 'Diário Oficial', mesEscolhido);
+            } else if (formato === 'word') {
+                exportarWord(dados, colunas, 'Diário Oficial', mesEscolhido);
+            } else if (formato === 'xml') {
+                 exportarConfiguracaoXML();
+            }
+        }
+
+        function exportarDefesaCivil() {
+            const mesEscolhido = document.getElementById('mesExportar').value;
+            const formato = document.getElementById('formatoExportar').value;
+            
+            if (mesEscolhido === '') {
+                showAlert('Selecione um mês para exportar.');
+                return;
+            }
+            
+            const dados = obterDadosMes(parseInt(mesEscolhido));
+            const colunas = ['Dia', 'Dia da Semana', 'Nome do Fiscal', 'Nº Registro', 'Telefone'];
+            
+            if (formato === 'pdf') {
+                exportarPDF(dados, colunas, 'Defesa Civil', mesEscolhido);
+            } else if (formato === 'word') {
+                exportarWord(dados, colunas, 'Defesa Civil', mesEscolhido);
+            } else if (formato === 'xml') {
+                exportarConfiguracaoXML();
+            }
+        }
+
+        function obterDadosMes(mes) {
+            const dados = [];
+            const diasNoMes = new Date(anoAtual, mes + 1, 0).getDate();
+            const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+            
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                const data = new Date(anoAtual, mes, dia);
+                const dataStr = formatarDataISO(data);
+                const escala = escalaAtual[dataStr];
+                
+                if (escala && escala.funcionario) {
+                    // CORREÇÃO: Passar o objeto 'funcionario'
+                    if (!estaEmFerias(escala.funcionario, dataStr)) {
+                        dados.push({
+                            dia: dia.toString().padStart(2, '0'),
+                            diaSemana: diasSemana[data.getDay()],
+                            nome: escala.funcionario.nome,
+                            registro: escala.funcionario.registro,
+                            telefone: escala.funcionario.telefone
+                        });
+                    }
+                }
+            }
+            
+            return dados;
+        }
+
+        function exportarPDF(dados, colunas, tipo, mesIndex) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            doc.setFontSize(16);
+            doc.text(`Escala de Plantão - ${tipo}`, 20, 20);
+            doc.setFontSize(12);
+            doc.text(`${meses[mesIndex]} ${anoAtual}`, 20, 30);
+            
+            const linhas = dados.map(item => {
+                if (tipo === 'Diário Oficial') {
+                    return [item.dia, item.diaSemana, item.nome, item.registro];
+                } else {
+                    return [item.dia, item.diaSemana, item.nome, item.registro, item.telefone];
+                }
+            });
+            
+            doc.autoTable({
+                startY: 40,
+                head: [colunas],
+                body: linhas,
+                theme: 'grid',
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [66, 139, 202] }
+            });
+            
+            doc.save(`Escala ${tipo.replace(' ', '_')} ${meses[mesIndex]} ${anoAtual}.pdf`);
+        }
+
+        function exportarWord(dados, colunas, tipo, mesIndex) {
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            let html = `
+                <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                <h2>Escala de Plantão - ${tipo}</h2>
+                <h3>${meses[mesIndex]} ${anoAtual}</h3>
+                <table border="1" style="border-collapse: collapse; width: 100%;"
+                    <thead>
+                        <tr style="background-color: #428bca; color: white;">
+            `;
+            
+            colunas.forEach(coluna => {
+                html += `<th style="padding: 8px; text-align: left;">${coluna}</th>`;
+            });
+            
+            html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            dados.forEach(item => {
+                html += '<tr>';
+                html += `<td style="padding: 8px;">${item.dia}</td>`;
+                html += `<td style="padding: 8px;">${item.diaSemana}</td>`;
+                html += `<td style="padding: 8px;">${escapeHTML(item.nome)}</td>`;
+                html += `<td style="padding: 8px;">${escapeHTML(item.registro)}</td>`;
+                if (tipo === 'Defesa Civil') {
+                    html += `<td style="padding: 8px;">${escapeHTML(item.telefone)}</td>`;
+                }
+                html += '</tr>';
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            const blob = new Blob([html], { type: 'application/msword' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Escala ${tipo.replace(' ', '_')} ${meses[mesIndex]} ${anoAtual}.doc`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // === IMPORTAÇÃO / EXPORTAÇÃO XML ===
+
+        function exportarConfiguracaoXML() {
+            salvarEstadoAno(anoAtual);
+            const configData = {
+                funcionarios: funcionarios,
+                ferias: ferias, // Agora usa 'registro'
+                feriados: feriados,
+                ciclos: {
+                    diaSemanaInicio: document.getElementById('cicloDiaSemanaInicio').value,
+                    fimSemanaInicio: document.getElementById('cicloFimSemanaInicio').value,
+                    feriadosInicio: document.getElementById('cicloFeriadosInicio').value
+                },
+                ciclosPorAno: ciclosPorAno,
+                ano: anoAtual,
+                trocasManuais: trocasManuais,
+                escalaFimAno: escalaFimAno
+            };
+
+            let xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xmlContent += '<configuracao_escala>\n';
+
+            xmlContent += '  <funcionarios>\n';
+            configData.funcionarios.forEach(func => {
+                xmlContent += `    <funcionario>\n`;
+                xmlContent += `      <nome>${escapeXML(func.nome)}</nome>\n`;
+                xmlContent += `      <registro>${escapeXML(func.registro)}</registro>\n`;
+                xmlContent += `      <telefone>${escapeXML(func.telefone)}</telefone>\n`;
+                xmlContent += `      <data_inicio>${escapeXML(func.dataInicio || '1900-01-01')}</data_inicio>\n`;
+                xmlContent += `      <data_fim>${escapeXML(func.dataFim || '')}</data_fim>\n`;
+                xmlContent += `    </funcionario>\n`;
+            });
+            xmlContent += '  </funcionarios>\n';
+            
+            // CORREÇÃO: Exportar férias usando 'registro'
+            xmlContent += '  <ferias>\n';
+            for (const registro in configData.ferias) {
+                configData.ferias[registro].forEach(periodo => {
+                    xmlContent += `    <funcionario_ferias registro="${escapeXML(registro)}">\n`;
+                    xmlContent += `      <inicio>${periodo.inicio}</inicio>\n`;
+                    xmlContent += `      <fim>${periodo.fim}</fim>\n`;
+                    xmlContent += `    </funcionario_ferias>\n`;
+                });
+            }
+            xmlContent += '  </ferias>\n';
+
+            xmlContent += '  <feriados>\n';
+            for (const data in configData.feriados) {
+                xmlContent += `    <feriado data="${escapeXML(data)}">${escapeXML(configData.feriados[data])}</feriado>\n`;
+            }
+            xmlContent += '  </feriados>\n';
+
+            xmlContent += '  <ciclos>\n';
+            xmlContent += `    <diaSemanaInicio index="${configData.ciclos.diaSemanaInicio}"/>\n`;
+            xmlContent += `    <fimSemanaInicio index="${configData.ciclos.fimSemanaInicio}"/>\n`;
+            xmlContent += `    <feriadosInicio index="${configData.ciclos.feriadosInicio}"/>\n`;
+            xmlContent += '  </ciclos>\n';
+            xmlContent += '  <ciclos_por_ano>\n';
+            Object.entries(configData.ciclosPorAno).sort(([a], [b]) => Number(a) - Number(b)).forEach(([ano, ciclos]) => {
+                xmlContent += `    <ano_ciclos ano="${escapeXML(ano)}" dia_semana="${ciclos.diaSemana || 0}" fim_semana="${ciclos.fimSemana || 0}" feriado="${ciclos.feriado || 0}"/>\n`;
+            });
+            xmlContent += '  </ciclos_por_ano>\n';
+            
+            xmlContent += `  <ano>${configData.ano}</ano>\n`;
+            
+            xmlContent += '  <trocas_manuais>\n';
+            for (const data in configData.trocasManuais) {
+                const funcionario = configData.trocasManuais[data];
+                if (funcionario && funcionario.nome) {
+                    xmlContent += `    <troca data="${escapeXML(data)}" registro_funcionario="${escapeXML(funcionario.registro)}"/>\n`;
+                }
+            }
+            xmlContent += '  </trocas_manuais>\n';
+
+            xmlContent += '  <escala_fim_ano>\n';
+            for (const data in configData.escalaFimAno) {
+                const funcionario = configData.escalaFimAno[data].funcionario;
+                if (funcionario && funcionario.nome) {
+                    xmlContent += `    <plantao data="${escapeXML(data)}" registro_funcionario="${escapeXML(funcionario.registro)}"/>\n`;
+                }
+            }
+            xmlContent += '  </escala_fim_ano>\n';
+
+            xmlContent += '</configuracao_escala>';
+
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            const dataFormatada = `${ano}-${mes}-${dia}`;
+            
+            const blob = new Blob([xmlContent], { type: 'text/xml' });
+            const nomeArquivo = `Escala_${dataFormatada}.xml`;
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeArquivo;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showAlert('Configuração salva com sucesso!', 'Exportação XML');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                showAlert('Nenhum arquivo selecionado.', 'Importação XML');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                showAlert('O arquivo é maior que o limite de 2 MB.', 'Importação XML');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const xmlString = e.target.result;
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+                    if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                        showAlert('Erro ao analisar o arquivo XML. Verifique a estrutura.', 'Importação XML');
+                        return;
+                    }
+                    if (xmlDoc.documentElement?.tagName !== 'configuracao_escala') {
+                        showAlert('Este arquivo não é uma configuração válida da escala.', 'Importação XML');
+                        return;
+                    }
+
+                    // Limpa dados antigos
+                    funcionarios = [];
+                    ferias = {};
+                    feriados = {};
+                    trocasManuais = {};
+                    escalaFimAno = {};
+
+                    // Carrega Funcionários
+                    const funcionariosElements = xmlDoc.getElementsByTagName('funcionario');
+                    for (let i = 0; i < funcionariosElements.length; i++) {
+                        const nome = funcionariosElements[i].getElementsByTagName('nome')[0]?.textContent;
+                        const registro = funcionariosElements[i].getElementsByTagName('registro')[0]?.textContent;
+                        const telefone = funcionariosElements[i].getElementsByTagName('telefone')[0]?.textContent;
+                        const dataInicio = funcionariosElements[i].getElementsByTagName('data_inicio')[0]?.textContent || '1900-01-01';
+                        const dataFim = funcionariosElements[i].getElementsByTagName('data_fim')[0]?.textContent || '';
+                        if (nome && registro && telefone) {
+                            funcionarios.push({ nome, registro, telefone, dataInicio, dataFim });
+                        }
+                    }
+
+                    // Ordena os funcionários (importante para os ciclos)
+                    funcionarios.sort(compararRegistroFuncional);
+
+                    // CORREÇÃO: Carrega Férias usando 'registro'
+                    const feriasElements = xmlDoc.getElementsByTagName('funcionario_ferias');
+                    for (let i = 0; i < feriasElements.length; i++) {
+                        const registro = feriasElements[i].getAttribute('registro'); // MUDANÇA: de 'index' para 'registro'
+                        const inicio = feriasElements[i].getElementsByTagName('inicio')[0]?.textContent;
+                        const fim = feriasElements[i].getElementsByTagName('fim')[0]?.textContent;
+
+                        if (registro && inicio && fim) {
+                            if (!ferias[registro]) {
+                                ferias[registro] = [];
+                            }
+                            ferias[registro].push({ inicio, fim });
+                        }
+                    }
+
+                    // Carrega Feriados
+                    const feriadosElements = xmlDoc.getElementsByTagName('feriado');
+                    for (let i = 0; i < feriadosElements.length; i++) {
+                        const data = feriadosElements[i].getAttribute('data');
+                        const nome = feriadosElements[i].textContent;
+                        if (data && nome) {
+                            feriados[data] = nome;
+                        }
+                    }
+
+                    // Carrega Ciclos
+                    const ciclosElement = xmlDoc.getElementsByTagName('ciclos')[0];
+                    if (ciclosElement) {
+                        const diaSemanaInicioElement = ciclosElement.getElementsByTagName('diaSemanaInicio')[0];
+                        const fimSemanaInicioElement = ciclosElement.getElementsByTagName('fimSemanaInicio')[0];
+                        const feriadosInicioElement = ciclosElement.getElementsByTagName('feriadosInicio')[0];
+
+                        if (diaSemanaInicioElement) {
+                            indiceDiaSemana = parseInt(diaSemanaInicioElement.getAttribute('index')) || 0;
+                            document.getElementById('cicloDiaSemanaInicio').value = indiceDiaSemana;
+                        }
+                        if (fimSemanaInicioElement) {
+                            indiceFinalSemana = parseInt(fimSemanaInicioElement.getAttribute('index')) || 0;
+                            document.getElementById('cicloFimSemanaInicio').value = indiceFinalSemana;
+                        }
+                        if (feriadosInicioElement) {
+                            indiceFeriado = parseInt(feriadosInicioElement.getAttribute('index')) || 0;
+                            document.getElementById('cicloFeriadosInicio').value = indiceFeriado;
+                        }
+                    }
+                    
+                    // Carrega Ano
+                    const anoElement = xmlDoc.getElementsByTagName('ano')[0];
+                    if (anoElement) {
+                        anoAtual = parseInt(anoElement.textContent) || new Date().getFullYear();
+                    }
+                    ciclosPorAno = {};
+                    const ciclosAnuaisElements = xmlDoc.getElementsByTagName('ano_ciclos');
+                    for (let i = 0; i < ciclosAnuaisElements.length; i++) {
+                        const ano = ciclosAnuaisElements[i].getAttribute('ano');
+                        if (!ano) continue;
+                        ciclosPorAno[ano] = {
+                            diaSemana: parseInt(ciclosAnuaisElements[i].getAttribute('dia_semana')) || 0,
+                            fimSemana: parseInt(ciclosAnuaisElements[i].getAttribute('fim_semana')) || 0,
+                            feriado: parseInt(ciclosAnuaisElements[i].getAttribute('feriado')) || 0
+                        };
+                    }
+                    if (!ciclosPorAno[anoAtual]) {
+                        ciclosPorAno[anoAtual] = { diaSemana: indiceDiaSemana, fimSemana: indiceFinalSemana, feriado: indiceFeriado };
+                    }
+                    
+                    // Carrega Trocas Manuais
+                    const trocasElements = xmlDoc.getElementsByTagName('troca');
+                    for (let i = 0; i < trocasElements.length; i++) {
+                        const data = trocasElements[i].getAttribute('data');
+                        const registroFuncionario = trocasElements[i].getAttribute('registro_funcionario');
+                        const nomeFuncionario = trocasElements[i].getAttribute('nome_funcionario');
+                        const funcionario = funcionarios.find(f => registroFuncionario ? f.registro === registroFuncionario : f.nome === nomeFuncionario);
+                        if (data && funcionario) {
+                            trocasManuais[data] = funcionario;
+                        }
+                    }
+
+                    // Carrega Escala Fim de Ano
+                    const escalaFimAnoElements = xmlDoc.getElementsByTagName('plantao');
+                    for (let i = 0; i < escalaFimAnoElements.length; i++) {
+                        const data = escalaFimAnoElements[i].getAttribute('data');
+                        const registroFuncionario = escalaFimAnoElements[i].getAttribute('registro_funcionario');
+                        const nomeFuncionario = escalaFimAnoElements[i].getAttribute('nome_funcionario');
+                        const funcionario = funcionarios.find(f => registroFuncionario ? f.registro === registroFuncionario : f.nome === nomeFuncionario);
+                        if (data && funcionario) {
+                            escalaFimAno[data] = { funcionario, data: new Date(data) };
+                        }
+                    }
+
+                    showAlert('Configuração importada com sucesso!', 'Importação XML');
+                    
+                    // Atualiza toda a UI
+                    atualizarListaFuncionarios();
+                    atualizarListaFerias(); // Agora usa 'registro'
+                    atualizarListaFeriados();
+                    preencherSelects();
+                    atualizarRotuloAnoCiclos();
+                    gerarEscala();
+                    atualizarCalendario();
+                    salvarDadosLocais();
+
+                } catch (error) {
+                    console.error('Erro ao importar XML:', error);
+                    showAlert('Ocorreu um erro ao processar o arquivo XML. Verifique a estrutura do XML.', 'Importação XML');
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>

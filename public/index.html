@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escala · Gestão de plantões</title>
+<meta name="description" content="Gestão de plantões da Defesa Civil, equipe, férias e histórico de escalas.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link href="/vendor/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/vendor/fontawesome/css/all.min.css">
+    <script src="/vendor/jspdf.umd.min.js"></script>
+    <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <aside class="sidebar">
+  <a class="brand" href="/" aria-label="Escala, início"><span class="brand-icon">e<span>·</span></span><span>escala<span class="brand-dot">.</span></span></a>
+  <div class="workspace"><span class="workspace-icon"><i class="fas fa-shield-alt"></i></span><div><strong>Defesa Civil</strong><small>Subprefeitura Penha</small></div></div>
+  <div class="nav-caption">ESPAÇO DE TRABALHO</div>
+  <nav aria-label="Menu principal"><button id="tabEscala" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt"></i>Escala de plantões</button><button id="tabConfiguracoes" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users"></i>Equipe e regras</button><button id="tabDocumentos" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open"></i>Documentos e backups</button></nav>
+  <div class="sidebar-bottom"><span class="local-dot"></span> Firebase Firestore <small id="accountLabel">Consulta pública</small></div>
+</aside>
+<main class="main-content"><header class="topbar"><span>DEFESA CIVIL <span class="breadcrumb">/ Gestão de plantões</span></span><div class="account-actions"><span id="saveStatus" role="status" aria-live="polite">Conectando ao banco…</span><button id="editorToggle" class="soft-button" type="button">Liberar edição</button></div></header>
+<div id="connectionError" class="connection-error hidden" role="alert"></div>
+<div class="page-heading"><div><div class="eyebrow">PLANEJAMENTO DA EQUIPE</div><h1 id="pageTitle">Escala de plantões</h1><p id="pageDescription">Uma visão clara de quem está à frente, todos os dias.</p></div><button class="heading-action" onclick="mostrarTela('documentos')"><i class="fas fa-arrow-down"></i> Exportar escala</button></div>
+<section class="metrics" aria-label="Resumo do mês"><article><span class="metric-icon blue"><i class="fas fa-users"></i></span><div><span>Equipe ativa no mês</span><strong id="metricTeam">0</strong></div></article><article><span class="metric-icon teal"><i class="far fa-calendar-check"></i></span><div><span>Plantões preenchidos</span><strong id="metricShifts">0 <small>/ 0</small></strong></div></article><article><span class="metric-icon amber"><i class="far fa-clock"></i></span><div><span>Dias sem responsável</span><strong id="metricOpen">0</strong></div></article><article><span class="metric-icon purple"><i class="fas fa-umbrella-beach"></i></span><div><span>Pessoas em férias no mês</span><strong id="metricVacation">0</strong></div></article></section>
+<div id="appContent" inert>
+
+        <!-- Painel de Controle -->
+        <section id="configScreen" class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-8 control-shell screen-hidden">
+            <div class="mb-5">
+                <div class="section-kicker">Configuração</div>
+                <h2 class="text-lg font-bold text-gray-800">Painel de gestão</h2>
+            </div>
+            <nav class="config-tabs" aria-label="Grupos de configuração">
+                <button id="configTabFuncionarios" class="config-tab active" onclick="mostrarGrupoConfig('funcionarios')"><i class="fas fa-users mr-2"></i>Funcionários</button>
+                <button id="configTabCiclos" class="config-tab" onclick="mostrarGrupoConfig('ciclos')"><i class="fas fa-redo-alt mr-2"></i>Ciclos</button>
+                <button id="configTabFerias" class="config-tab" onclick="mostrarGrupoConfig('ferias')"><i class="fas fa-plane mr-2"></i>Férias</button>
+                <button id="configTabFeriados" class="config-tab" onclick="mostrarGrupoConfig('feriados')"><i class="fas fa-calendar-check mr-2"></i>Feriados</button>
+            </nav>
+            <div class="management-grid">
+                <div id="editorStack" class="editor-stack">
+                <!-- Gestão de Funcionários -->
+                <div class="bg-red-50 p-4 rounded-lg editor-card employee-card">
+                    <h3 class="text-lg font-semibold mb-4 text-red-800">
+                        <i class="fas fa-user-plus mr-2"></i>Gestão de Funcionários
+                    </h3>
+                    <div class="mb-3 form-grid">
+                        <div class="span-2"><label class="field-label" for="nomeFuncionario">Nome completo</label><input type="text" id="nomeFuncionario" placeholder="Nome do funcionário" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="field-label" for="registroFuncionario">Registro funcional</label><input type="text" id="registroFuncionario" placeholder="Nº do registro" class="w-full p-2 border rounded text-sm"></div>
+                        <div><label class="field-label" for="telefoneFuncionario">Telefone</label><input type="text" id="telefoneFuncionario" placeholder="Telefone" class="w-full p-2 border rounded text-sm"></div>
+                        <div class="span-2"><label class="field-label" for="inicioFuncionario">Escalar a partir de</label><input type="date" id="inicioFuncionario" class="w-full p-2 border rounded text-sm"></div>
+                        <button id="salvarFuncionarioBtn" onclick="adicionarFuncionario()" class="bg-blue-600 text-white p-2 hover:bg-blue-700 text-sm primary-action span-2">
+                            <i class="fas fa-plus mr-1"></i><span>Adicionar funcionário</span>
+                        </button>
+                        <button id="cancelarEdicaoFuncionarioBtn" onclick="cancelarEdicaoFuncionario()" class="hidden bg-gray-100 text-gray-700 p-2 text-sm span-2">Cancelar edição</button>
+                    </div>
+                    <div class="list-pane">
+                        <div class="list-heading"><strong>Equipe cadastrada</strong><span id="totalFuncionarios" class="text-xs text-gray-400"></span></div>
+                        <div id="listaFuncionarios"></div>
+                    </div>
+                </div>
+
+                <!-- Início dos Ciclos de Rotação -->
+                <div class="bg-yellow-50 p-4 rounded-lg editor-card cycles-card">
+                    <h3 class="text-lg font-semibold mb-4 text-yellow-800">
+                        <i class="fas fa-redo-alt mr-2"></i>Início dos Ciclos
+                    </h3>
+                    <p id="cicloAnoLabel" class="text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg px-3 py-2 mb-3"></p>
+                    <div class="mb-3">
+                        <label for="cicloDiaSemanaInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Dias da Semana (início)</label>
+                        <select id="cicloDiaSemanaInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cicloFimSemanaInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Finais de Semana (início)</label>
+                        <select id="cicloFimSemanaInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cicloFeriadosInicio" class="block text-xs font-medium text-gray-700 mb-1">Ciclo: Feriados (início)</label>
+                        <select id="cicloFeriadosInicio" class="w-full p-2 border rounded text-sm" onchange="atualizarCiclos()">
+                            <option value="">Selecionar Funcionário</option>
+                        </select>
+                    </div>
+                </div>
+            
+                <!-- Gestão de Férias -->
+                <div class="bg-blue-50 p-4 rounded-lg flex flex-col editor-card vacation-card">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-800">
+                        <i class="fas fa-plane mr-2"></i>Gestão de Férias
+                    </h3>
+                    <div class="vacation-form">
+                    <label class="field-label" for="funcionarioFerias">Funcionário</label><select id="funcionarioFerias" class="w-full p-2 border rounded mb-2">
+                        <option value="">Selecionar Funcionário</option>
+                    </select>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><label class="field-label" for="inicioFerias">Início</label><input type="date" id="inicioFerias" class="p-2 border rounded text-sm w-full"></div>
+                        <div><label class="field-label" for="fimFerias">Fim</label><input type="date" id="fimFerias" class="p-2 border rounded text-sm w-full"></div>
+                    </div>
+                    <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 text-sm">
+                        <i class="fas fa-plus mr-1"></i><span>Adicionar férias</span>
+                    </button>
+                    <button id="cancelarEdicaoFeriasBtn" onclick="cancelarEdicaoFerias()" class="hidden w-full bg-gray-100 text-gray-700 p-2 text-sm mt-2">Cancelar edição</button>
+                    </div>
+                    <div class="list-pane">
+                        <div class="list-heading"><strong>Períodos cadastrados</strong><span id="totalFerias" class="text-xs text-gray-400"></span></div>
+                        <div id="listaFerias"></div>
+                    </div>
+                </div>
+
+                <!-- Controle de Feriados -->
+                <div class="bg-green-50 p-4 rounded-lg flex flex-col editor-card holiday-card">
+                    <h3 class="text-lg font-semibold mb-4 text-green-800">
+                        <i class="fas fa-calendar-check mr-2"></i>Controle de Feriados
+                    </h3>
+                    <input type="date" id="dataFeriado" class="w-full p-2 border rounded mb-2">
+                    <input type="text" id="nomeFeriado" placeholder="Nome do feriado" class="w-full p-2 border rounded mb-2 text-sm">
+                        <button onclick="adicionarFeriado()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 text-sm">
+                        <i class="fas fa-plus mr-1"></i>Adicionar Feriado
+                    </button>
+                    <div class="list-pane holiday-list-pane">
+                        <div class="list-heading"><strong>Feriados do ano</strong></div>
+                        <div id="listaFeriados"></div>
+                    </div>
+                </div>
+                </div>
+                <div id="overviewLists" class="overview-lists"></div>
+            </div>
+            
+        </section>
+
+<section id="documentsScreen" class="screen-hidden">            <!-- Exportação -->
+            <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg mt-6 editor-card">
+                <h3 class="text-lg font-semibold mb-4 text-purple-800">
+                    <i class="fas fa-download mr-2"></i>Exportação
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
+                    <select id="mesExportar" class="w-full p-2 border rounded">
+                        <option value="">Selecionar Mês</option>
+                    </select>
+                    <select id="formatoExportar" class="w-full p-2 border rounded">
+                        <option value="pdf">PDF</option>
+                        <option value="word">Word</option>
+                        <option value="xml">XML</option>
+                    </select>
+                    <button onclick="exportarDiarioOficial()" class="w-full bg-purple-500 text-white p-2 rounded hover:bg-purple-600 text-sm">
+                        <i class="fas fa-file-alt mr-1"></i>Diário Oficial
+                    </button>
+                    <button onclick="exportarDefesaCivil()" class="w-full bg-purple-600 text-white p-2 rounded hover:bg-purple-700 text-sm">
+                        <i class="fas fa-shield-alt mr-1"></i>Defesa Civil
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                    <button onclick="exportarConfiguracaoXML()" class="w-full bg-gray-500 text-white p-2 rounded hover:bg-gray-600 text-sm">
+                        <i class="fas fa-file-export mr-1"></i>Salvar Configuração
+                    </button>
+                    <input type="file" id="importXmlInput" accept=".xml" class="hidden" onchange="handleFileUpload(event)">
+                    <button onclick="document.getElementById('importXmlInput').click()" class="w-full bg-blue-700 text-white p-2 rounded hover:bg-blue-800 text-sm">
+                        <i class="fas fa-file-import mr-1"></i>Importar Configuração
+                    </button>
+                </div>
+            </div>
+<div class="backup-grid"><article class="panel"><div class="section-kicker">PROTEÇÃO DOS DADOS</div><h2>Backup completo</h2><p>Guarde uma cópia de toda a equipe, regras e configurações anuais.</p><div class="button-row"><button class="solid-button" onclick="baixarBackup()"><i class="fas fa-download"></i> Baixar backup</button><button class="soft-button" onclick="document.getElementById('backupInput').click()">Restaurar backup</button><input id="backupInput" type="file" accept=".json" hidden></div><p class="hint">Para trazer os dados do HTML antigo, importe sua configuração XML acima.</p></article><article class="panel"><div class="section-kicker">HISTÓRICO AUTOMÁTICO</div><h2>Versões salvas</h2><p>Cada salvamento cria uma versão. Restaure quando precisar.</p><div id="versionList" class="version-list">Carregando…</div></article></div></section><section id="escalaScreen">
+        <div class="bg-white rounded-lg shadow-lg p-4 md:p-6 mb-8 calendar-shell">
+            <div class="grid grid-cols-2 md:flex md:justify-between md:items-center gap-2 mb-6 text-sm">
+                <button onclick="anoAnterior()" class="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 w-full md:w-auto">
+                    <i class="fas fa-angle-double-left mr-1"></i>Ano Anterior
+                </button>
+                <button onclick="mesAnterior()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 w-full md:w-auto">
+                    <i class="fas fa-chevron-left mr-1"></i>Anterior
+                </button>
+
+                <h2 id="mesAtual" class="col-span-2 md:col-span-1 text-xl font-bold text-center order-first md:order-none"></h2>
+
+                <button onclick="proximoMes()" class="bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 w-full md:w-auto">
+                    Próximo<i class="fas fa-chevron-right ml-1"></i>
+                </button>
+                <button onclick="proximoAno()" class="bg-gray-500 text-white px-3 py-2 rounded hover:bg-gray-600 w-full md:w-auto">
+                    Próximo Ano<i class="fas fa-angle-double-right ml-1"></i>
+                </button>
+            </div>
+
+            
+            <p class="calendar-hint"><span><i class="far fa-hand-pointer"></i> Clique em um dia para editar. Arraste entre dias para trocar plantões.</span><button class="text-action" onclick="irParaHoje()">Ir para hoje</button></p><div id="calendario" class="grid grid-cols-7 gap-2"></div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg p-6 legend-shell">
+            <h3 class="text-lg font-semibold mb-4">
+                <i class="fas fa-info-circle mr-2"></i>Legenda
+            </h3>
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded mr-2"></div>
+                    <span>Dias da Semana</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-green-200 border-2 border-green-400 rounded mr-2"></div>
+                    <span>Finais de Semana</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-red-200 border-2 border-red-400 rounded mr-2"></div>
+                    <span>Feriados</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-gray-200 border-2 border-gray-400 rounded mr-2"></div>
+                    <span>Férias</span>
+                </div>
+                <div class="flex items-center">
+                    <div class="w-4 h-4 bg-purple-200 border-2 border-purple-400 rounded mr-2"></div>
+                    <span>Fim de Ano</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div><footer class="app-footer">Escala · Organização que cuida da equipe.<span>Dados sincronizados com Firebase Firestore</span></footer></main></div>
+    <!-- Modal de Alerta -->
+    <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4" id="alertModalTitle">Alerta</h3>
+            <p class="mb-4" id="alertModalMessage"></p>
+            <div class="flex justify-end">
+                <button id="closeAlertBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Confirmação (BUG FIX) -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96">
+            <h3 class="text-lg font-bold mb-4">Confirmação</h3>
+            <p class="mb-4" id="confirmModalMessage"></p>
+            <div class="flex justify-end gap-2">
+                <button id="confirmCancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+                <button id="confirmOkBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Atribuição de Plantão de Fim de Ano -->
+    <div id="assignModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-96 modal-card">
+            <h3 class="text-lg font-bold mb-4">Atribuir Plantão de Fim de Ano</h3>
+            <p class="mb-4" id="assignModalDate"></p>
+            <select id="assignModalFuncionario" class="w-full p-2 border rounded mb-4">
+                <option value="">Selecionar Funcionário</option>
+            </select>
+            <div class="flex justify-end gap-2">
+                <button id="assignModalCancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
+                <button id="assignModalOkBtn" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Atribuir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de desligamento: preserva o histórico e encerra apenas a vigência -->
+    <div id="desligamentoModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-xl modal-card">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 grid place-items-center"><i class="fas fa-user-clock"></i></div>
+                <div><h3 class="text-lg font-bold">Encerrar participação</h3><p id="desligamentoNome" class="text-sm text-gray-500"></p></div>
+            </div>
+            <label for="dataDesligamento" class="block text-sm font-semibold text-gray-700 mb-1">Não escalar a partir de</label>
+            <input type="date" id="dataDesligamento" class="w-full p-2 border mb-2">
+            <p class="text-xs text-gray-500 mb-5">O funcionário continuará aparecendo nas escalas anteriores a esta data.</p>
+            <div class="flex justify-end gap-2">
+                <button id="desligamentoCancelBtn" class="bg-gray-100 text-gray-700 px-4 py-2">Cancelar</button>
+                <button id="desligamentoOkBtn" class="bg-amber-600 text-white px-4 py-2 hover:bg-amber-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/firebase-config.js" defer></script><script src="/firebase.bundle.js" defer></script><script src="/storage.js" defer></script><script src="/app.js" defer></script><script src="/schedule.js" defer></script><script src="/exports.js" defer></script><script src="/xml-import.js" defer></script><script src="/interface.js" defer></script><script src="/editor.js" defer></script>
+</body></html>
