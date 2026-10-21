@@ -160,7 +160,8 @@ function exportarConfiguracaoXML() {
         ciclosPorAno: ciclosPorAno,
         ano: anoAtual,
         trocasManuais: trocasManuais,
-        escalaFimAno: escalaFimAno
+        escalaFimAno: escalaFimAno,
+        coresDias: coresDias
     };
 
     let xmlContent = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -224,6 +225,9 @@ function exportarConfiguracaoXML() {
     }
     xmlContent += '  </escala_fim_ano>\n';
 
+    xmlContent += '  <cores_dias>\n';
+    for(const [day,color] of Object.entries(configData.coresDias))xmlContent += `    <cor_dia data="${escapeXML(day)}" tipo="${escapeXML(color)}"/>\n`;
+    xmlContent += '  </cores_dias>\n';
     xmlContent += '</configuracao_escala>';
 
     const hoje = new Date();

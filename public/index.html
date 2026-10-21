@@ -11,17 +11,19 @@
     <script src="/vendor/jspdf.umd.min.js"></script>
     <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
 <link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/calendar.css">
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8">
-        <aside class="sidebar">
+        <button id="sidebarShade" class="sidebar-shade" aria-label="Fechar menu lateral" hidden></button>
+        <aside id="sidebar" class="sidebar">
   <a class="brand" href="/" aria-label="Escala, início"><span class="brand-icon">e<span>·</span></span><span>escala<span class="brand-dot">.</span></span></a>
   <div class="workspace"><span class="workspace-icon"><i class="fas fa-shield-alt"></i></span><div><strong>Defesa Civil</strong><small>Subprefeitura Penha</small></div></div>
   <div class="nav-caption">ESPAÇO DE TRABALHO</div>
-  <nav aria-label="Menu principal"><button id="tabEscala" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt"></i>Escala de plantões</button><button id="tabConfiguracoes" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users"></i>Equipe e regras</button><button id="tabDocumentos" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open"></i>Documentos e backups</button></nav>
+  <nav aria-label="Menu principal"><button id="tabEscala" title="Escala de plantões" aria-label="Escala de plantões" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt" aria-hidden="true"></i><span>Escala de plantões</span></button><button id="tabConfiguracoes" title="Equipe e regras" aria-label="Equipe e regras" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users" aria-hidden="true"></i><span>Equipe e regras</span></button><button id="tabDocumentos" title="Documentos e backups" aria-label="Documentos e backups" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open" aria-hidden="true"></i><span>Documentos e backups</span></button></nav>
   <div class="sidebar-bottom"><span class="local-dot"></span> Banco conectado <small id="accountLabel">Consulta pública</small></div>
 </aside>
-<main class="main-content"><header class="topbar"><span>DEFESA CIVIL <span class="breadcrumb">/ Gestão de plantões</span></span><div class="account-actions"><span id="saveStatus" role="status" aria-live="polite">Conectando ao banco…</span><button id="editorToggle" class="soft-button" type="button">Liberar edição</button></div></header>
+<main class="main-content"><header class="topbar"><div class="topbar-leading"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu lateral"><i class="fas fa-bars" aria-hidden="true"></i></button><span>DEFESA CIVIL <span class="breadcrumb">/ Gestão de plantões</span></span></div><div class="account-actions"><span id="saveStatus" role="status" aria-live="polite">Conectando ao banco…</span><button id="editorToggle" class="soft-button" type="button">Liberar edição</button></div></header>
 <div id="connectionError" class="connection-error hidden" role="alert"></div>
 <div class="page-heading"><div><div class="eyebrow">PLANEJAMENTO DA EQUIPE</div><h1 id="pageTitle">Escala de plantões</h1><p id="pageDescription">Uma visão clara de quem está à frente, todos os dias.</p></div><button class="heading-action" onclick="mostrarTela('documentos')"><i class="fas fa-arrow-down"></i> Exportar escala</button></div>
 <section class="metrics" aria-label="Resumo do mês"><article><span class="metric-icon blue"><i class="fas fa-users"></i></span><div><span>Equipe ativa no mês</span><strong id="metricTeam">0</strong></div></article><article><span class="metric-icon teal"><i class="far fa-calendar-check"></i></span><div><span>Plantões preenchidos</span><strong id="metricShifts">0 <small>/ 0</small></strong></div></article><article><span class="metric-icon amber"><i class="far fa-clock"></i></span><div><span>Dias sem responsável</span><strong id="metricOpen">0</strong></div></article><article><span class="metric-icon purple"><i class="fas fa-umbrella-beach"></i></span><div><span>Pessoas em férias no mês</span><strong id="metricVacation">0</strong></div></article></section>
@@ -86,6 +88,7 @@
                             <option value="">Selecionar Funcionário</option>
                         </select>
                     </div>
+                    <div class="year-end-cycle"><strong>Ciclo: Fim de ano</strong><p>Da segunda-feira imediatamente anterior ao Natal até o primeiro domingo de janeiro, inclusive. Este período tem prioridade sobre os outros ciclos. Defina os responsáveis clicando nos dias roxos do calendário.</p></div>
                 </div>
             
                 <!-- Gestão de Férias -->
@@ -185,7 +188,7 @@
             </div>
 
             
-            <p class="calendar-hint"><span><i class="far fa-hand-pointer"></i> Clique em um dia para editar. Arraste entre dias para trocar plantões.</span><button class="text-action" onclick="irParaHoje()">Ir para hoje</button></p><div id="calendario" class="grid grid-cols-7 gap-2"></div>
+            <p class="calendar-hint"><span><i class="far fa-hand-pointer"></i> Clique em um dia para editar ou escolher sua cor. Arraste entre dias para trocar plantões.</span><button class="text-action" onclick="irParaHoje()">Ir para hoje</button></p><div class="calendar-viewport" tabindex="0" aria-label="Calendário mensal; deslize para os lados em telas pequenas"><div id="calendario" class="grid grid-cols-7 gap-2"></div></div>
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-6 legend-shell">
@@ -194,24 +197,20 @@
             </h3>
             <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
                 <div class="flex items-center">
-                    <div class="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded mr-2"></div>
-                    <span>Dias da Semana</span>
+                    <div class="color-swatch" data-cor="semana"></div>
+                    <span>Segunda a sexta</span>
                 </div>
                 <div class="flex items-center">
-                    <div class="w-4 h-4 bg-green-200 border-2 border-green-400 rounded mr-2"></div>
+                    <div class="color-swatch" data-cor="fimSemana"></div>
                     <span>Finais de Semana</span>
                 </div>
                 <div class="flex items-center">
-                    <div class="w-4 h-4 bg-red-200 border-2 border-red-400 rounded mr-2"></div>
+                    <div class="color-swatch" data-cor="feriado"></div>
                     <span>Feriados</span>
                 </div>
                 <div class="flex items-center">
-                    <div class="w-4 h-4 bg-gray-200 border-2 border-gray-400 rounded mr-2"></div>
-                    <span>Férias</span>
-                </div>
-                <div class="flex items-center">
-                    <div class="w-4 h-4 bg-purple-200 border-2 border-purple-400 rounded mr-2"></div>
-                    <span>Fim de Ano</span>
+                    <div class="color-swatch" data-cor="outros"></div>
+                    <span>Fim de ano / Outros</span>
                 </div>
             </div>
         </div>

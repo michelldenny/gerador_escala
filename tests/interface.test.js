@@ -99,6 +99,61 @@ test('recalcular preserva atribuições manuais e sinaliza plantões consecutivo
   try { assert.equal(execute("escalaAtual['2026-10-20'].funcionario.registro"),'001'); assert.equal(execute("escalaAtual['2026-10-21'].funcionario.registro"),'001'); assert.equal(d.getElementById('calendarWarnings').hidden,false); assert.match(d.getElementById('calendarWarnings').textContent,/consecutivo/); } finally {dom.window.close();}
 });
 
+test('cores personalizadas são salvas, recuperadas, validadas e preservadas no XML',async()=>{
+  const state=structuredClone(base);state.coresDias={'2025-04-01':'outros'};
+  const {dom,window:w,document:d,execute}=await setup(state);
+  try {
+    const day='2026-10-05';const before=execute(`escalaAtual['${day}'].funcionario?.registro`);
+    w.abrirDia(day);d.querySelector('input[name=dayColor][value=outros]').checked=true;d.querySelector('.day-card .solid-button').click();
+    assert.equal(w.saved.coresDias[day],'outros');assert.equal(w.saved.coresDias['2025-04-01'],'outros');
+    assert.equal(d.querySelector(`[data-data="${day}"]`).dataset.cor,'outros');
+    assert.equal(execute(`escalaAtual['${day}'].funcionario?.registro`),before,'Cor não altera o rodízio');
+    validateState(w.saved);
+    const restored=await setup(w.saved);assert.equal(restored.document.querySelector(`[data-data="${day}"]`).dataset.cor,'outros');restored.dom.window.close();
+    let content;w.Blob=class{constructor(parts){content=parts.join('');}};w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.HTMLAnchorElement.prototype.click=()=>{};
+    w.exportarConfiguracaoXML();assert.equal(w.lerConfiguracaoXML(content).coresDias[day],'outros');
+    w.abrirDia(day);d.querySelector('input[name=dayColor][value=""]').checked=true;d.querySelector('.day-card .solid-button').click();
+    assert.equal(w.saved.coresDias[day],undefined);assert.equal(d.querySelector(`[data-data="${day}"]`).dataset.cor,'semana');
+    const invalid=structuredClone(w.saved);invalid.coresDias[day]='url(private)';assert.throws(()=>validateState(invalid),/Cor ou data/);
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('os quatro ciclos pintam dias sem responsável e completam as linhas de todos os meses',async()=>{
+  const state=structuredClone(base);state.funcionarios=[];state.ferias={};state.anoAtual=2026;state.mesAtualIndex=0;state.feriados={'2026-01-25':'Feriado'};
+  const {dom,document:d,execute}=await setup(state);
+  try{
+    assert.equal(d.querySelector('[data-data="2026-01-01"]').dataset.cor,'outros');
+    assert.equal(d.querySelector('[data-data="2026-01-05"]').dataset.cor,'semana');
+    assert.equal(d.querySelector('[data-data="2026-01-10"]').dataset.cor,'fimSemana');
+    assert.equal(d.querySelector('[data-data="2026-01-25"]').dataset.cor,'feriado');
+    for(let month=0;month<12;month++){
+      execute(`mesAtualIndex=${month};atualizarCalendario()`);
+      const children=[...d.getElementById('calendario').children];
+      assert.equal(children.length%7,0);assert.equal(children.filter(el=>el.dataset.data).length,new Date(2026,month+1,0).getDate());
+      assert.ok(children.filter(el=>el.classList.contains('calendar-empty')).every(el=>!el.className.includes('h-20')));
+    }
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('fim de ano começa antes do Natal e termina no primeiro domingo, inclusive quando é dia 1',async()=>{
+  const {dom,execute}=await setup();
+  try{
+    for(const [day,expected] of [['2023-01-01',true],['2023-01-02',false],['2023-12-17',false],['2023-12-18',true],['2024-01-07',true],['2024-01-08',false],['2026-12-20',false],['2026-12-21',true],['2027-01-03',true],['2027-01-04',false]])assert.equal(execute(`isFimAno('${day}')`),expected,day);
+    assert.equal(execute('getPeriodosFimAno(2023).periodo2.fim'),'2024-01-07');
+  }finally{dom.window.close();}
+});
+
+test('barra lateral retrai, expande e guarda a preferência visual',async()=>{
+  const {dom,window:w,document:d}=await setup();
+  try{
+    const button=d.getElementById('sidebarToggle');assert.equal(button.getAttribute('aria-expanded'),'true');button.click();
+    assert.ok(d.body.classList.contains('sidebar-collapsed'));assert.equal(button.getAttribute('aria-expanded'),'false');assert.equal(w.localStorage.getItem('escala-sidebar-collapsed'),'true');
+    button.click();assert.equal(button.getAttribute('aria-expanded'),'true');assert.ok(!d.body.classList.contains('sidebar-collapsed'));
+  }finally{dom.window.close();}
+});
+
 test('XML antigo por índice, datas brasileiras e períodos duplicados é normalizado sem alterar a ordem do rodízio',async () => {
   const {dom,window:w}=await setup();
   try {

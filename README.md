@@ -21,6 +21,8 @@ SQLite permanece disponível somente para desenvolvimento/recuperação local co
 
 Calendário, rodízio anual, funcionários, vigências, férias, feriados, trocas, fim de ano, PDF, Word, XML, backup JSON e versões foram preservados. Importações são validadas antes de gravar. Revisões antigas são rejeitadas para impedir sobrescritas.
 
+O calendário pinta o dia inteiro: azul (segunda a sexta), verde (fim de semana), vermelho (feriado) e roxo (fim de ano/outros). O nome permanece preto. No editor do dia, é possível escolher uma dessas cores ou voltar ao modo automático; a escolha é salva no banco e acompanha os backups JSON e XML, sem alterar o rodízio. O período de fim de ano vai da segunda-feira imediatamente anterior ao Natal até o primeiro domingo de janeiro, inclusive, e tem prioridade sobre os outros ciclos. Os responsáveis desse período continuam sendo definidos no calendário. A barra lateral recolhe pelo botão de menu e guarda a preferência no navegador.
+
 A senha é verificada no servidor. Todas as alterações exigem sessão autorizada, origem válida e token da aplicação. Conhecer o token público não libera edição. As sessões duram 8 horas; **Bloquear edição** revoga a sessão. Alterar o hash invalida sessões anteriores.
 
 A conexão PostgreSQL não é enviada ao navegador. Sessões e limites de tentativas são compartilhados entre instâncias. Apenas o hash do token de sessão e um identificador derivado do endereço de rede são armazenados. SQLite local utiliza sessões em memória.

@@ -57,6 +57,8 @@ function lerConfiguracaoXML(text) {
     state[target][day]=tag==='plantao' ? {funcionario:employee,data:day} : employee;
   }
   state.ciclosPorAno[state.anoAtual]=state.ciclos;
+  state.coresDias={};
+  for(const node of nodes(xml,'cor_dia'))state.coresDias[safe(date(node.getAttribute('data') || ''))]=node.getAttribute('tipo');
   state.feriasPorAno[state.anoAtual]=structuredClone(state.ferias); state.feriadosPorAno[state.anoAtual]={...state.feriados}; state.trocasPorAno[state.anoAtual]={...state.trocasManuais}; state.fimAnoPorAno[state.anoAtual]={...state.escalaFimAno};
   window.validarEstado?.(state);
   return state;
@@ -89,6 +91,7 @@ function mesclarConfiguracaoXML(existing,imported) {
   const employees=new Map(existing.funcionarios.map(f => [f.registro,f]));
   imported.funcionarios.forEach(f => employees.set(f.registro,f));
   const merged={...existing,...imported,funcionarios:[...employees.values()].sort(compararRegistroFuncional)};
+  merged.coresDias={...existing.coresDias,...imported.coresDias};
   for(const key of ['feriasPorAno','feriadosPorAno','trocasPorAno','fimAnoPorAno']) merged[key]={...existing[key],...imported[key]};
   const remap=(cycles,source) => Object.fromEntries(['diaSemana','fimSemana','feriado'].map(key => [key,Math.max(0,merged.funcionarios.findIndex(f => f.registro===source.funcionarios[cycles[key]]?.registro))]));
   merged.ciclosPorAno={};

@@ -14,6 +14,7 @@ let inicioCicloPendente = {};
 
 let trocasManuais = {};
 let escalaFimAno = {};
+let coresDias = {};
 
 // Estados salvos por ano
 let escalasPorAno = {};
@@ -146,6 +147,7 @@ function carregarDados() {
         feriados = salvo.feriados || {};
         trocasManuais = salvo.trocasManuais || {};
         escalaFimAno = salvo.escalaFimAno || {};
+        coresDias = salvo.coresDias || {};
         feriasPorAno = salvo.feriasPorAno || {};
         feriadosPorAno = salvo.feriadosPorAno || {};
         trocasPorAno = salvo.trocasPorAno || {};
@@ -190,7 +192,7 @@ function salvarDados() {
         feriado: parseInt(document.getElementById('cicloFeriadosInicio')?.value) || 0
     };
     ciclosPorAno[anoAtual] = { ...ciclos };
-    window.persistencia.salvar({ funcionarios, ferias, feriados, trocasManuais, escalaFimAno, feriasPorAno, feriadosPorAno, trocasPorAno, fimAnoPorAno, ciclosPorAno, anoAtual, mesAtualIndex, ciclos });
+    window.persistencia.salvar({ funcionarios, ferias, feriados, trocasManuais, escalaFimAno, coresDias, feriasPorAno, feriadosPorAno, trocasPorAno, fimAnoPorAno, ciclosPorAno, anoAtual, mesAtualIndex, ciclos });
 }
 
 
@@ -744,7 +746,7 @@ function atualizarCalendario() {
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     diasSemana.forEach(dia => {
         const headerDiv = document.createElement('div');
-        headerDiv.className = 'text-center font-bold p-2 bg-gray-200';
+        headerDiv.className = 'calendar-weekday text-center font-bold p-2 bg-gray-200';
         headerDiv.textContent = dia;
         calendario.appendChild(headerDiv);
     });
@@ -754,7 +756,8 @@ function atualizarCalendario() {
     
     for (let i = 0; i < primeiroDiaSemana; i++) {
         const emptyDiv = document.createElement('div');
-        emptyDiv.className = 'p-2 border border-gray-200 h-20 md:h-24';
+        emptyDiv.className = 'calendar-empty';
+        emptyDiv.setAttribute('aria-hidden','true');
         calendario.appendChild(emptyDiv);
     }
     
@@ -766,31 +769,14 @@ function atualizarCalendario() {
         const escala = escalaAtual[dataStr];
         
         const diaDiv = document.createElement('div');
-        diaDiv.className = 'p-2 h-20 md:h-24 border cursor-pointer transition-all hover:bg-gray-50 flex flex-col justify-between items-start calendar-day-content';
+        diaDiv.className = 'calendar-day-content';
         diaDiv.draggable = true;
         diaDiv.dataset.data = dataStr;
         
-        let corFundo = 'bg-white';
         const funcionario = escala?.funcionario;
-
-        if (funcionario) {            if (estaEmFerias(funcionario, dataStr)) {
-                corFundo = 'bg-gray-200 border-gray-400';
-            } else if (isFimAno(dataStr)) {
-                 if (escalaFimAno[dataStr]) {
-                     corFundo = 'bg-purple-200 border-purple-400';
-                 } else {
-                     corFundo = 'bg-green-100 border-green-300';
-                 }
-            } else if (feriados[dataStr]) {
-                corFundo = 'bg-red-100 border-red-300';
-            } else if (escala.tipo === 'fimSemana') {
-                corFundo = 'bg-green-100 border-green-300';
-            } else {
-                corFundo = 'bg-blue-100 border-blue-300';
-            }
-        }
-        
-        diaDiv.className += ` ${corFundo}`;
+        const cor=coresDias[dataStr] || obterCorAutomatica(dataStr);
+        diaDiv.dataset.cor=cor;
+        diaDiv.dataset.ciclo=isFimAno(dataStr)?'fimDeAno':feriados[dataStr]?'feriado':([0,6].includes(data.getDay())?'fimSemana':'semana');
         
         let conteudo = `<div class="font-bold text-sm mb-1">${dia}</div>`;
         
@@ -844,6 +830,10 @@ function atualizarCalendario() {
         });
         
         calendario.appendChild(diaDiv);
+    }
+    const completar=(7-(primeiroDiaSemana+diasNoMes)%7)%7;
+    for(let i=0;i<completar;i++){
+        const empty=document.createElement('div');empty.className='calendar-empty';empty.setAttribute('aria-hidden','true');calendario.append(empty);
     }
 }
 

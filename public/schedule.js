@@ -279,8 +279,7 @@ function getPeriodosFimAno(ano) {
     let segundaPosPeriodo1 = new Date(fimPeriodo1);
     segundaPosPeriodo1.setDate(fimPeriodo1.getDate() + 1);
 
-    const fimPeriodo2 = new Date(segundaPosPeriodo1);
-    fimPeriodo2.setDate(segundaPosPeriodo1.getDate() + 6);
+    const fimPeriodo2 = new Date(getPeriodoInicioAno(ano+1).fim+'T00:00:00');
     
     return {
         periodo1: { inicio: formatarDataISO(primeiraSegundaPreNatal), fim: formatarDataISO(fimPeriodo1) },
@@ -291,7 +290,7 @@ function getPeriodosFimAno(ano) {
 function getPeriodoInicioAno(ano) {
     const primeiroDeJaneiro = new Date(ano, 0, 1);
     let primeiroDomingo = new Date(primeiroDeJaneiro);
-    primeiroDomingo.setDate(primeiroDeJaneiro.getDate() + (7 - primeiroDeJaneiro.getDay()));
+    primeiroDomingo.setDate(primeiroDeJaneiro.getDate() + (7 - primeiroDeJaneiro.getDay()) % 7);
     return {
         inicio: formatarDataISO(primeiroDeJaneiro),
         fim: formatarDataISO(primeiroDomingo)
@@ -313,5 +312,11 @@ function isFimAno(dataStr) {
     const fimAno = new Date(periodoInicioAno.fim + 'T00:00:00');
 
     return (data >= inicio1 && data <= fim1) || (data >= inicio2 && data <= fim2) || (data >= inicioAno && data <= fimAno);
+}
+
+function obterCorAutomatica(day) {
+    if(isFimAno(day))return 'outros';
+    if(feriados[day])return 'feriado';
+    return [0,6].includes(new Date(day+'T12:00:00').getDay())?'fimSemana':'semana';
 }
 

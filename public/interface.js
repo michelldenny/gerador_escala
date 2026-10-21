@@ -57,11 +57,23 @@ window.abrirDia=function(day) {
   const note=document.createElement('p'); note.className='hint'; note.textContent='A lista inclui pessoas ativas e disponíveis nesta data. Alterações manuais ficam registradas na escala.';
   const holidayLabel=document.createElement('label'); holidayLabel.className='holiday-checkbox'; const checkbox=document.createElement('input'); checkbox.type='checkbox'; checkbox.checked=Boolean(feriados[day]); holidayLabel.append(checkbox,document.createTextNode(' Considerar este dia um feriado'));
   const holidayName=document.createElement('input'); holidayName.type='text'; holidayName.maxLength=300; holidayName.setAttribute('aria-label','Nome do feriado'); holidayName.placeholder='Nome do feriado'; holidayName.value=feriados[day] || ''; holidayName.hidden=!checkbox.checked; checkbox.onchange=() => { holidayName.hidden=!checkbox.checked; };
+  const colors=document.createElement('fieldset');colors.className='day-colors';
+  const legend=document.createElement('legend');legend.textContent='Cor deste dia';colors.append(legend);
+  for(const [value,text] of [['','Automática, conforme o ciclo'],['fimSemana','Verde · Final de semana'],['feriado','Vermelho · Feriado'],['semana','Azul · Segunda a sexta'],['outros','Roxo · Outros / Fim de ano']]){
+    const option=document.createElement('label');option.className='color-choice';
+    const radio=document.createElement('input');radio.type='radio';radio.name='dayColor';radio.value=value;radio.checked=value===(coresDias[day] || '');
+    const swatch=document.createElement('span');swatch.className='color-swatch';swatch.dataset.cor=value || obterCorAutomatica(day);swatch.setAttribute('aria-hidden','true');
+    option.append(radio,swatch,document.createTextNode(text));colors.append(option);
+  }
+  const colorNote=document.createElement('p');colorNote.className='hint';colorNote.textContent='A cor personaliza o calendário. O ciclo e o responsável continuam definidos pelas regras acima.';
   const actions=document.createElement('div'); actions.className='button-row'; const cancel=document.createElement('button'); cancel.className='soft-button'; cancel.textContent='Cancelar'; const save=document.createElement('button'); save.className='solid-button'; save.textContent='Salvar alterações';
   const previous=document.activeElement; const close=() => { overlay.remove(); previous?.focus(); }; cancel.onclick=close;
   save.onclick=() => {
+    if(window.persistencia?.canEdit===false)return;
     if(checkbox.checked) feriados[day]=holidayName.value.trim() || 'Feriado'; else delete feriados[day];
     const employee=funcionarios.find(f => f.registro===select.value) || null;
+    const chosen=colors.querySelector('input:checked').value;
+    if(chosen)coresDias[day]=chosen;else delete coresDias[day];
     // Reclassifying a day recalculates its automatic assignment; only an explicit selection pins it.
     if(select.value !== (shift?.funcionario?.registro || '')) {
       if(isFimAno(day)) { if(employee) escalaFimAno[day]={funcionario:employee,data:day}; else delete escalaFimAno[day]; }
@@ -69,9 +81,27 @@ window.abrirDia=function(day) {
     }
     gerarEscala(); atualizarCalendario(); atualizarListaFeriados(); salvarDados(); close();
   };
-  actions.append(cancel,save); card.append(title,label,select,note,holidayLabel,holidayName,actions); overlay.append(card); document.body.append(overlay); select.focus();
-  overlay.addEventListener('keydown',event => { if(event.key==='Escape') close(); if(event.key==='Tab') { const focusable=[...card.querySelectorAll('button,select,input')].filter(el => !el.hidden); const first=focusable[0], last=focusable.at(-1); if(event.shiftKey && document.activeElement===first) { event.preventDefault(); last.focus(); } else if(!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus(); } } });
+  actions.append(cancel,save); card.append(title,label,select,note,holidayLabel,holidayName,colors,colorNote,actions); overlay.append(card); document.body.append(overlay); select.focus();
+  overlay.addEventListener('keydown',event => { if(event.key==='Escape') close(); if(event.key==='Tab') { const focusable=[...card.querySelectorAll('button,select,input')].filter(el => !el.hidden && !el.disabled); const first=focusable[0], last=focusable.at(-1); if(event.shiftKey && document.activeElement===first) { event.preventDefault(); last.focus(); } else if(!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus(); } } });
 };
+
+(() => {
+  const toggle=document.getElementById('sidebarToggle'),sidebar=document.getElementById('sidebar'),shade=document.getElementById('sidebarShade');
+  const preference='escala-sidebar-collapsed';
+  function setCollapsed(collapsed){
+    document.body.classList.toggle('sidebar-collapsed',collapsed);
+    toggle.setAttribute('aria-expanded',String(!collapsed));toggle.setAttribute('aria-label',collapsed?'Expandir menu lateral':'Recolher menu lateral');toggle.title=toggle.getAttribute('aria-label');
+    const mobile=window.matchMedia?.('(max-width:850px)').matches;
+    sidebar.inert=Boolean(collapsed && mobile);shade.hidden=collapsed || !mobile;
+  }
+  let saved=null;try{saved=localStorage.getItem(preference);}catch{}
+  setCollapsed(saved===null?Boolean(window.matchMedia?.('(max-width:850px)').matches):saved==='true');
+  toggle.onclick=()=>{const collapsed=!document.body.classList.contains('sidebar-collapsed');setCollapsed(collapsed);try{localStorage.setItem(preference,String(collapsed));}catch{}};
+  const closeMobile=()=>{if(window.matchMedia?.('(max-width:850px)').matches){setCollapsed(true);toggle.focus();}};
+  shade.onclick=closeMobile;sidebar.querySelectorAll('.side-link').forEach(button=>button.addEventListener('click',closeMobile));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape' && !document.body.classList.contains('sidebar-collapsed'))closeMobile();});
+  window.addEventListener('resize',()=>setCollapsed(document.body.classList.contains('sidebar-collapsed')));
+})();
 document.addEventListener('DOMContentLoaded',async () => {
   try {
     await persistencia.iniciar(); inicializarEscalas(); atualizarResumo(); document.getElementById('appContent').inert=false;

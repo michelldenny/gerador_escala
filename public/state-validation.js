@@ -25,6 +25,10 @@ export function validateState(state) {
   const cycles = value => { if (!object(value) || !['diaSemana','fimSemana','feriado'].every(key => Number.isInteger(value[key]) && value[key] >= 0 && value[key] <= Math.max(state.funcionarios.length-1,0))) throw new InputError('Ciclo inválido.'); };
   vacations(state.ferias); holidays(state.feriados); assignments(state.trocasManuais); assignments(state.escalaFimAno,true); cycles(state.ciclos);
   yearMap(state.feriasPorAno,vacations); yearMap(state.feriadosPorAno,holidays); yearMap(state.trocasPorAno,assignments); yearMap(state.fimAnoPorAno,value => assignments(value,true)); yearMap(state.ciclosPorAno,cycles);
+  if(state.coresDias!==undefined){
+    if(!object(state.coresDias))throw new InputError('Cores do calendário inválidas.');
+    for(const [day,color] of Object.entries(state.coresDias))if(!date(day) || !['semana','fimSemana','feriado','outros'].includes(color))throw new InputError('Cor ou data inválida no calendário.');
+  }
   // Reject prototype keys throughout imported data, including nested annual maps.
   const inspect = value => { if (value && typeof value === 'object') for (const [key,item] of Object.entries(value)) { if (['__proto__','constructor','prototype'].includes(key)) throw new InputError('Chave inválida no arquivo.'); inspect(item); } }; inspect(state);
   return state;
