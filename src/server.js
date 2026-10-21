@@ -6,7 +6,7 @@ import { randomBytes, createHmac } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { loadEnvFile } from 'node:process';
 import { editorAccess } from './editor-access.js';
-import { openFirestoreStore } from './firestore-store.js';
+import { openPostgresStore } from './postgres-store.js';
 import { InputError } from '../public/state-validation.js';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.woff2':'font/woff2','.ttf':'font/ttf','.txt':'text/plain; charset=utf-8' };
@@ -58,17 +58,18 @@ export function createApplication({store,passwordHash,publicOrigin,now,securityS
       if(!file.startsWith(publicRoot + '/') && !file.startsWith(publicRoot + '\\')) throw new InputError('Acesso não permitido.',403);
       let data; try { data=await readFile(file); } catch { throw new InputError('Arquivo não encontrado.',404); }
       res.writeHead(200,{'Content-Type':mime[extname(file)] || 'application/octet-stream'}); res.end(req.method === 'HEAD' ? undefined : data);
-    } catch(error) { if(error.status) json(error.status,{error:error.message}); else { console.error('Falha no banco:',error.code || error.name); json(503,{error:'Não foi possível acessar o banco. Verifique a conexão e a configuração da credencial de servidor do Firestore. Os dados anteriores foram preservados.'}); } }
+    } catch(error) { if(error.status) json(error.status,{error:error.message}); else { console.error('Falha no banco:',error.code || error.name); json(503,{error:'Não foi possível acessar o banco PostgreSQL. Confira DATABASE_URL e a conexão do banco ao projeto na Vercel. Os dados anteriores foram preservados.'}); } }
   });
-  server.on('close',() => store.close());
+  server.on('close',() => Promise.resolve(store.close()).catch(()=>console.error('Falha ao encerrar a conexão com o banco.')));
   return server;
 }
 export async function createConfiguredApplication(options={}) {
   if(existsSync(resolve(root,'.env'))) loadEnvFile(resolve(root,'.env'));
   const passwordFile=resolve(root,'data/editor-password.json');
   const passwordHash=process.env.ESCALA_EDITOR_PASSWORD_HASH || (existsSync(passwordFile) ? JSON.parse(readFileSync(passwordFile,'utf8')).passwordHash : undefined);
-  const store=process.env.ESCALA_STORAGE==='sqlite' ? (await import('./database.js')).openStore(process.env.ESCALA_DB || resolve(root,'data/escala.sqlite')) : openFirestoreStore();
-  return createApplication({store,passwordHash,publicOrigin:process.env.PUBLIC_ORIGIN || undefined,...options});
+  const sqlite=process.env.ESCALA_STORAGE==='sqlite';
+  const store=sqlite ? (await import('./database.js')).openStore(process.env.ESCALA_DB || resolve(root,'data/escala.sqlite')) : openPostgresStore();
+  return createApplication({store,passwordHash,securityStore:sqlite?undefined:store,publicOrigin:process.env.PUBLIC_ORIGIN || undefined,...options});
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const port=Number(process.env.PORT || 3210);

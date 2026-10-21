@@ -1,10 +1,32 @@
-# Publicar na Vercel
+# PostgreSQL na Vercel
 
-O projeto agora inclui `vercel.json` e `api/index.js`. A página é servida como arquivos estáticos da pasta `public`, e as rotas `/api/*` são atendidas por uma função Node.js 22. Não é necessário executar `npm start` na Vercel nem publicar Firebase Functions para usar essa hospedagem.
+A aplicação utiliza PostgreSQL conectado pela Vercel. A opção indicada é **Neon**, no painel Storage/Marketplace. Não precisa mais de conta de serviço Firebase. A consulta continua pública e alterações exigem a senha compartilhada.
 
-## Ajustes no projeto Vercel
+## 1. Conectar o banco
 
-Em **Settings → Build and Deployment**, confira:
+1. Abra **gerador-escala-irqp** no painel Vercel.
+2. Entre em **Storage → Create Database** (ou **Marketplace**) e escolha **Neon / Postgres**.
+3. Escolha a região e um plano adequado ao uso, confira as condições exibidas pelo provedor e crie o banco.
+4. Conecte-o ao projeto **gerador-escala-irqp** e habilite **Production**.
+5. Em **Settings → Environment Variables**, confirme `DATABASE_URL`. A integração normalmente adiciona essa variável automaticamente. `POSTGRES_URL` também é aceita. Se escolher um prefixo personalizado, copie a conexão para `DATABASE_URL`.
+
+Escolha PostgreSQL, não Blob nem Edge Config. Use a conexão com pooling da integração, mantendo as opções de SSL. A URL contém a senha do banco: não a coloque em arquivos públicos, no GitHub ou na conversa.
+
+As tabelas são criadas automaticamente no primeiro acesso, em transação coordenada entre instâncias. Não é necessário executar SQL manualmente. O usuário da conexão deve poder criar tabelas e consultar/gravar dados nesse banco.
+
+## 2. Senha de edição
+
+Preserve `ESCALA_EDITOR_PASSWORD_HASH` se já estiver correta. Para criar ou corrigir:
+
+1. No computador, abra **Definir Senha.cmd** e escolha uma senha com pelo menos 8 caracteres.
+2. Abra **data/editor-password.hash** no Bloco de Notas.
+3. Cole a linha inteira em `ESCALA_EDITOR_PASSWORD_HASH`, no ambiente **Production** da Vercel.
+
+São 161 caracteres: 32 antes de `:` e 128 depois. Cole sem aspas, sem `{ }` e sem o nome `passwordHash`. Não use a senha em texto puro nem o conteúdo do arquivo JSON. Se aparecer `EDITOR_PASSWORD_HASH_INVALID`, corrija a variável e faça Redeploy.
+
+Sem hash configurado, a consulta funciona e alterações ficam bloqueadas. Um hash inválido informa o erro específico. Alterar o hash invalida as sessões anteriores.
+
+## 3. Publicar
 
 | Configuração | Valor |
 | --- | --- |
@@ -15,53 +37,39 @@ Em **Settings → Build and Deployment**, confira:
 | Install Command | npm ci |
 | Node.js | 22.x |
 
-O arquivo `vercel.json` já declara o build, a pasta pública e o encaminhamento da API. As versões anteriores do projeto tinham configuração somente para Firebase Hosting.
+Depois de conectar o banco e salvar as variáveis, abra **Deployments → Redeploy** no commit mais recente. As variáveis só passam a valer nas novas implantações.
 
-## Variáveis de ambiente obrigatórias
+`PUBLIC_ORIGIN` é opcional. Se existir, use o domínio público exato, como `https://gerador-escala-irqp.vercel.app`, sem barra final. Remova um valor antigo do Firebase Hosting, que bloquearia as alterações pelo novo domínio.
 
-Em **Settings → Environment Variables**, adicione em **Production** (e também em **Preview**, se for usar as prévias):
+`FIREBASE_SERVICE_ACCOUNT_JSON` e `GOOGLE_APPLICATION_CREDENTIALS` não são utilizadas por esta versão e podem ser removidas do ambiente Vercel. Isso não altera nem apaga os dados no Firebase.
 
-### FIREBASE_SERVICE_ACCOUNT_JSON
+## 4. Importar XML ou backup
 
-Cole o **conteúdo completo do JSON da conta de serviço** do projeto `gerador-de-escala-59952`.
+O banco novo começa vazio. A aplicação não copia automaticamente dados do Firebase nem apaga o banco antigo.
 
-No console Firebase: Configurações do projeto → Contas de serviço → Firebase Admin SDK → Gerar nova chave privada. Guarde a chave de forma privada. A aplicação valida o projeto e os campos `project_id`, `client_email` e `private_key` antes de usar a credencial.
+1. Abra a aplicação e clique em **Liberar edição**.
+2. Digite a senha escolhida no computador.
+3. Em **Documentos e backups**, importe seu XML ou backup JSON e confirme.
+4. Aguarde a confirmação e recarregue para conferir os dados recuperados do banco.
+5. Guarde o arquivo original como cópia de segurança.
 
-Essa variável é de servidor. Não use prefixos `NEXT_PUBLIC_` ou `VITE_`, não a coloque na pasta public e não envie a chave ao GitHub ou nesta conversa. A configuração web com apiKey, projectId e appId não substitui essa conta de serviço.
+Os formatos e as validações foram mantidos. Uma importação válida cria uma versão no histórico. As contas Vercel/Neon são utilizadas somente pelo administrador para configurar a hospedagem; a aplicação não exige login dos visitantes.
 
-### ESCALA_EDITOR_PASSWORD_HASH
+## Conferir e resolver erros
 
-1. No computador, abra **Definir Senha.cmd** e escolha a senha compartilhada.
-2. Abra o arquivo **data/editor-password.hash**, gerado por esse programa.
-3. Copie a linha inteira `salt:hash` para o valor desta variável na Vercel.
+- `/`: interface pública.
+- `/api/session`: JSON com `canEdit: false` para visitantes; `passwordConfigured: true` após configurar o hash.
+- `/api/state`: JSON com `revision: 0` e `state: null` em um banco novo, ou o estado salvo.
+- Erro solicitando `DATABASE_URL`: conecte o banco, habilite **Production** e faça Redeploy.
+- Erro genérico PostgreSQL: confira a URL completa, a disponibilidade do banco e as permissões do usuário. Os logs registram apenas códigos, nunca a conexão ou senha.
+- Erro de origem ao editar: confira `PUBLIC_ORIGIN`.
 
-Use o hash, não o conteúdo do arquivo JSON e não a senha em texto puro. A senha continua sendo digitada somente por quem deseja liberar a edição. Alterar o hash e fazer novo deploy invalida as sessões anteriores.
+## Dados e segurança
 
-Se aparecer `EDITOR_PASSWORD_HASH_INVALID`, a variável da senha foi preenchida em formato inválido. O valor correto tem 161 caracteres: 32 antes dos dois-pontos e 128 depois. Copie somente a linha do arquivo `.hash`, sem aspas, sem `{ }` e sem o nome `passwordHash`. Salve a variável e faça Redeploy. Esse erro ocorre antes da conexão com o Firebase; ele não indica, por si só, que a credencial do banco está errada.
+A conexão fica somente no servidor. As rotas de alteração verificam senha, sessão, origem e revisão. As tabelas são `escala_state`, `escala_versions`, `escala_sessions` e `escala_attempts`. Estado e versão são gravados na mesma transação, com bloqueio da revisão atual para evitar sobrescritas.
 
-### PUBLIC_ORIGIN (opcional)
+Sessões e tentativas são compartilhadas entre instâncias. Sessões duram 8 horas; o limite é de 5 tentativas por endereço em 15 minutos. Somente o hash do token de sessão é armazenado. Entradas expiradas são limpas durante novas liberações e tentativas.
 
-Na Vercel, a origem HTTPS é detectada a partir do domínio atendido pela plataforma, incluindo domínios de prévia. Se definir essa variável, use exatamente o endereço público permitido, por exemplo `https://gerador-escala-irqp.vercel.app`, sem barra final. Uma origem antiga do Firebase Hosting impedirá as gravações por outro domínio.
+Para prévias, use um banco ou branch separado, conectado somente a **Preview**.
 
-## Fazer novo deploy
-
-Depois de salvar as variáveis, abra **Deployments → Redeploy** no commit mais recente. As variáveis só passam a valer nas novas implantações.
-
-Para verificar:
-
-- `/`: deve exibir a aplicação sem login.
-- `/api/session`: deve retornar JSON; `canEdit` será false para visitantes. `passwordConfigured` deve ser true após configurar o hash.
-- `/api/state`: deve retornar JSON com a escala, ou estado vazio se ainda não houver dados.
-- **Liberar edição**: aceita a senha e permite alterar dados; **Bloquear edição** revoga a liberação.
-
-Se a página abre mas o banco informa erro 503, revise a conta de serviço, as permissões do Firestore e a existência do banco padrão `(default)`. Isso é diferente do erro `FUNCTION_INVOCATION_FAILED`, que indica que a função não iniciou ou falhou antes de responder.
-
-## Funcionamento das sessões
-
-A Vercel pode atender requisições por instâncias diferentes. Por isso, as sessões e os limites de tentativas ficam compartilhados no Firestore, em `_escala_sessions` e `_escala_attempts`, sem acesso público pelas regras fornecidas. O token da sessão é aleatório e somente seu hash é armazenado; a senha nunca é enviada ao navegador pelo servidor.
-
-As sessões expiram após 8 horas. O bloqueio é respeitado por todas as instâncias. Para limpeza automática dos documentos expirados, o administrador pode habilitar TTL no campo `expiresAt` dessas duas coleções; a validação de expiração funciona mesmo sem TTL.
-
-O Firestore continua sem aceitar gravações diretas do navegador. A função verifica senha, sessão, origem e revisão antes de alterar a escala.
-
-Referências: [funções Node.js na Vercel](https://vercel.com/docs/functions/runtimes/node-js), [configuração do projeto](https://vercel.com/docs/project-configuration/vercel-json), [variáveis de ambiente](https://vercel.com/docs/environment-variables).
+Referências: [Postgres na Vercel](https://vercel.com/docs/postgres), [Neon no Marketplace](https://vercel.com/marketplace/neon), [conexões PostgreSQL](https://node-postgres.com/features/connecting).

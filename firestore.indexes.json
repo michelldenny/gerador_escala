@@ -1,7 +1,0 @@
-{
-  "indexes": [],
-  "fieldOverrides": [
-    {"collectionGroup":"escalas","fieldPath":"payload","indexes":[]},
-    {"collectionGroup":"versoes","fieldPath":"payload","indexes":[]}
-  ]
-}

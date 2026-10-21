@@ -4,7 +4,7 @@ import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import { createVercelHandler } from '../api/index.js';
 import { hashPassword } from '../src/editor-access.js';
-import { readServiceAccount } from '../src/firestore-store.js';
+import { readDatabaseUrl } from '../src/postgres-store.js';
 
 test('Vercel atende rewrites e JSON já processado; duas instâncias compartilham senha, sessão e revogação',async t=>{
   const sessions=new Map(),attempts=new Map();let revision=0, writes=0;
@@ -39,11 +39,14 @@ test('Vercel atende rewrites e JSON já processado; duas instâncias compartilha
   assert.equal((await api(first,'../src/server.js')).status,404);
 });
 
-test('credencial da Vercel aceita JSON e normaliza quebras de linha sem expor a chave em erros',()=>{
-  assert.equal(readServiceAccount({}),null);
-  assert.throws(()=>readServiceAccount({FIREBASE_SERVICE_ACCOUNT_JSON:'conteudo-privado-invalido'}),error=>error.status===503&&!error.message.includes('conteudo-privado'));
-  const parsed=readServiceAccount({FIREBASE_SERVICE_ACCOUNT_JSON:JSON.stringify({project_id:'gerador-de-escala-59952',client_email:'fixture@example.test',private_key:'linha1\\nlinha2'})});
-  assert.equal(parsed.private_key,'linha1\nlinha2');
+test('conexão PostgreSQL reconhece variáveis da Vercel e nunca expõe o valor nos erros',()=>{
+  assert.throws(()=>readDatabaseUrl({}),error=>error.status===503 && /DATABASE_URL/.test(error.message));
+  assert.throws(()=>readDatabaseUrl({DATABASE_URL:'conteudo-privado-invalido'}),error=>error.status===503&&!error.message.includes('conteudo-privado'));
+  assert.throws(()=>readDatabaseUrl({DATABASE_URL:'https://private.example/db'}),error=>error.status===503&&!error.message.includes('private.example'));
+  const value='postgresql://fixture:secret@localhost/test';
+  assert.equal(readDatabaseUrl({DATABASE_URL:` ${value}\n`}),value);
+  assert.equal(readDatabaseUrl({POSTGRES_URL:value}),value);
+  assert.equal(readDatabaseUrl({DATABASE_URL:value,POSTGRES_URL:'ignored'}),value);
 });
 
 test('configuração Vercel serve public e encaminha a API para uma função Node',()=>{

@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded',async () => {
       } catch(error) { showAlert(error.message,'Backup inválido'); }
     });
   } catch(error) {
-    const banner=document.getElementById('connectionError'); banner.classList.remove('hidden'); banner.textContent=window.CONFIG_BANCO?.provider==='firestore' ? `Não foi possível abrir o Firestore. ${error.message}` : `Não foi possível abrir o banco de dados. Verifique se o servidor está em execução e recarregue a página. ${error.message}`;
+    const banner=document.getElementById('connectionError'); banner.classList.remove('hidden'); banner.textContent=`Não foi possível abrir o banco de dados. ${error.message}`;
     const retry=document.createElement('button'); retry.textContent='Tentar novamente'; retry.onclick=() => location.reload(); banner.append(retry); document.getElementById('saveStatus').textContent='Banco indisponível';
   }
 });

@@ -3,5 +3,7 @@ node_modules/
 *.log
 .firebase/
 .env
+.env.*
+!.env.example
 *service-account*.json
 .vercel/

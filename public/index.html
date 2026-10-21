@@ -19,7 +19,7 @@
   <div class="workspace"><span class="workspace-icon"><i class="fas fa-shield-alt"></i></span><div><strong>Defesa Civil</strong><small>Subprefeitura Penha</small></div></div>
   <div class="nav-caption">ESPAÇO DE TRABALHO</div>
   <nav aria-label="Menu principal"><button id="tabEscala" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt"></i>Escala de plantões</button><button id="tabConfiguracoes" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users"></i>Equipe e regras</button><button id="tabDocumentos" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open"></i>Documentos e backups</button></nav>
-  <div class="sidebar-bottom"><span class="local-dot"></span> Firebase Firestore <small id="accountLabel">Consulta pública</small></div>
+  <div class="sidebar-bottom"><span class="local-dot"></span> Banco conectado <small id="accountLabel">Consulta pública</small></div>
 </aside>
 <main class="main-content"><header class="topbar"><span>DEFESA CIVIL <span class="breadcrumb">/ Gestão de plantões</span></span><div class="account-actions"><span id="saveStatus" role="status" aria-live="polite">Conectando ao banco…</span><button id="editorToggle" class="soft-button" type="button">Liberar edição</button></div></header>
 <div id="connectionError" class="connection-error hidden" role="alert"></div>
@@ -217,7 +217,7 @@
         </div>
     </section>
 
-</div><footer class="app-footer">Escala · Organização que cuida da equipe.<span>Dados sincronizados com Firebase Firestore</span></footer></main></div>
+</div><footer class="app-footer">Escala · Organização que cuida da equipe.<span>Dados salvos com histórico de versões</span></footer></main></div>
     <!-- Modal de Alerta -->
     <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white p-6 rounded-lg shadow-xl w-96">
@@ -273,5 +273,5 @@
         </div>
     </div>
 
-    <script src="/firebase-config.js" defer></script><script src="/firebase.bundle.js" defer></script><script src="/storage.js" defer></script><script src="/app.js" defer></script><script src="/schedule.js" defer></script><script src="/exports.js" defer></script><script src="/xml-import.js" defer></script><script src="/interface.js" defer></script><script src="/editor.js" defer></script>
+    <script src="/validation.bundle.js" defer></script><script src="/storage.js" defer></script><script src="/app.js" defer></script><script src="/schedule.js" defer></script><script src="/exports.js" defer></script><script src="/xml-import.js" defer></script><script src="/interface.js" defer></script><script src="/editor.js" defer></script>
 </body></html>

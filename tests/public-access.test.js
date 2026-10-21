@@ -8,7 +8,7 @@ test('aplicação abre para consulta sem login e só libera os formulários apó
   try {
     await new Promise(resolve=>dom.window.addEventListener('load',resolve));const w=dom.window;w.TextEncoder=TextEncoder;w.TextDecoder=TextDecoder;w.structuredClone=structuredClone;
     w.fetch=async(path,options={})=>({ok:true,json:async()=>path==='/api/session'?{token:'test',canEdit:false}:path==='/api/state'?{revision:0,state:null}:{canEdit:path==='/api/editor/unlock'}});
-    for(const name of ['firebase-config.js','firebase.bundle.js','storage.js','app.js','schedule.js','exports.js','xml-import.js','interface.js','editor.js'])new vm.Script(fs.readFileSync(new URL(name,dir),'utf8')).runInContext(dom.getInternalVMContext());
+    for(const name of ['validation.bundle.js','storage.js','app.js','schedule.js','exports.js','xml-import.js','interface.js','editor.js'])new vm.Script(fs.readFileSync(new URL(name,dir),'utf8')).runInContext(dom.getInternalVMContext());
     w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await new Promise(resolve=>setImmediate(resolve));
     assert.equal(w.document.getElementById('loginPanel'),null);assert.equal(w.persistencia.canEdit,false);assert.equal(w.document.getElementById('nomeFuncionario').disabled,true);assert.equal(w.document.getElementById('appContent').inert,false);
     w.document.getElementById('editorToggle').click();assert.ok(w.document.getElementById('editorDialog'));
