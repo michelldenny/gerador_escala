@@ -19,6 +19,8 @@ SQLite permanece disponível somente para desenvolvimento/recuperação local co
 
 ## Funcionalidades e segurança
 
+Marcar ou desmarcar um feriado recalcula o responsável pelo ciclo correspondente. Uma atribuição manual anterior desse dia é removida para não substituir o novo cálculo; as atribuições dos demais dias são preservadas. Isso vale para o clique no calendário, o popup e o cadastro/remoção de feriados. A prioridade já definida para o período especial de fim de ano permanece.
+
 Calendário, rodízio anual, funcionários, vigências, férias, feriados, trocas, fim de ano, PDF, Word, XML, backup JSON e versões foram preservados. Importações são validadas antes de gravar. Revisões antigas são rejeitadas para impedir sobrescritas.
 
 O calendário utiliza cores suaves no dia inteiro: azul (segunda a sexta), verde (fim de semana), vermelho (feriado) e roxo (fim de ano/outros), com nomes em preto. Clicar no quadrado ou no número marca/desmarca feriado, após liberar a edição; esse gesto remove uma cor manual para voltar à classificação automática. Clicar no nome abre o popup, sem alternar o feriado. Dias sem responsável oferecem o mesmo acesso para definir o plantonista. No popup, também é possível personalizar a cor, que acompanha o banco, backups JSON e XML sem alterar o rodízio. O período de fim de ano vai da segunda-feira imediatamente anterior ao Natal até o primeiro domingo de janeiro, inclusive, e tem prioridade sobre os outros ciclos. A barra lateral permanece retrátil.

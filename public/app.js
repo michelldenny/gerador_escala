@@ -286,6 +286,16 @@ function atualizarRotuloAnoCiclos() {
 
 // === GESTÃO DE FERIADOS ===
 
+function definirFeriado(data,nome) {
+    const mudouCiclo=Boolean(feriados[data])!==Boolean(nome);
+    if(nome)feriados[data]=nome;else delete feriados[data];
+    if(mudouCiclo){
+        delete trocasManuais[data];
+        const ano=data.slice(0,4);if(trocasPorAno[ano])delete trocasPorAno[ano][data];
+    }
+    return mudouCiclo;
+}
+
 
 
 
@@ -305,7 +315,7 @@ function adicionarFeriado() {
          return;
     }
 
-    feriados[data] = nome;
+    definirFeriado(data,nome);
     atualizarListaFeriados();
     gerarEscala();
     atualizarCalendario();
@@ -336,7 +346,7 @@ function atualizarListaFeriados() {
 }
 
 function removerFeriado(data) {
-    delete feriados[data];
+    definirFeriado(data,null);
     atualizarListaFeriados();
     gerarEscala();
     atualizarCalendario();
@@ -728,11 +738,7 @@ function showAssignModal(dataStr) {
 
 function toggleFeriado(dataStr) {
     if(window.persistencia?.canEdit===false){window.solicitarEdicao?.();return;}
-    if (feriados[dataStr]) {
-        delete feriados[dataStr];
-    } else {
-        feriados[dataStr] = "Feriado";
-    }
+    definirFeriado(dataStr,feriados[dataStr]?null:'Feriado');
     delete coresDias[dataStr];
     atualizarListaFeriados();
     gerarEscala();

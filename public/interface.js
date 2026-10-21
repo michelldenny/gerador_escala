@@ -105,7 +105,7 @@ window.abrirDia=function(day) {
   const previous=document.activeElement; const close=() => { overlay.remove(); previous?.focus(); }; cancel.onclick=close;
   save.onclick=() => {
     if(window.persistencia?.canEdit===false)return;
-    if(checkbox.checked) feriados[day]=holidayName.value.trim() || 'Feriado'; else delete feriados[day];
+    definirFeriado(day,checkbox.checked?(holidayName.value.trim() || 'Feriado'):null);
     const employee=funcionarios.find(f => f.registro===select.value) || null;
     const chosen=colors.querySelector('input:checked').value;
     if(chosen)coresDias[day]=chosen;else delete coresDias[day];

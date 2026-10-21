@@ -172,6 +172,36 @@ test('clique no quadrado alterna feriado e clique no nome abre somente a ediçã
   }finally{dom.window.close();}
 });
 
+test('marcar feriado troca a atribuição manual pelo ciclo correto e persiste ao reabrir',async()=>{
+  for(const [day,originalType,restoredRecord] of [['2026-01-05','semana','001'],['2026-01-10','fimSemana','002']]){
+    const state=structuredClone(base);state.ferias={};state.mesAtualIndex=0;state.feriados={'2026-12-25':'Natal'};state.ciclos={diaSemana:0,fimSemana:1,feriado:2};
+    state.trocasManuais={[day]:state.funcionarios[3],'2026-01-20':state.funcionarios[4]};state.trocasPorAno={2026:structuredClone(state.trocasManuais)};
+    const {dom,window:w,document:d,execute}=await setup(state);
+    try{
+      assert.equal(execute(`escalaAtual['${day}'].funcionario.registro`),'004');
+      d.querySelector(`[data-data="${day}"] .day-toggle`).click();
+      assert.equal(execute(`escalaAtual['${day}'].tipo`),'feriado');assert.equal(execute(`escalaAtual['${day}'].funcionario.registro`),'003');
+      assert.equal(w.saved.trocasManuais[day],undefined);assert.equal(w.saved.trocasPorAno[2026][day],undefined);assert.equal(w.saved.trocasManuais['2026-01-20'].registro,'005');
+      const reopened=await setup(w.saved);assert.equal(reopened.execute(`escalaAtual['${day}'].funcionario.registro`),'003');reopened.dom.window.close();
+      d.querySelector(`[data-data="${day}"] .day-toggle`).click();assert.equal(execute(`escalaAtual['${day}'].tipo`),originalType);assert.equal(execute(`escalaAtual['${day}'].funcionario.registro`),restoredRecord);
+      await new Promise(resolve=>setImmediate(resolve));
+    }finally{dom.window.close();}
+  }
+});
+
+test('popup e cadastro de feriados também aplicam o ciclo ao alterar a classificação',async()=>{
+  const state=structuredClone(base);state.ferias={};state.mesAtualIndex=0;state.feriados={'2026-12-25':'Natal'};state.ciclos={diaSemana:0,fimSemana:1,feriado:2};state.trocasManuais={'2026-01-05':state.funcionarios[3]};
+  const {dom,window:w,document:d,execute}=await setup(state);
+  try{
+    w.abrirDia('2026-01-05');d.querySelector('.holiday-checkbox input').checked=true;d.querySelector('.day-card .solid-button').click();
+    assert.equal(execute("escalaAtual['2026-01-05'].funcionario.registro"),'003');assert.equal(w.saved.trocasManuais['2026-01-05'],undefined);
+    w.removerFeriado('2026-01-05');assert.equal(execute("escalaAtual['2026-01-05'].funcionario.registro"),'001');
+    execute("trocasManuais['2026-01-05']=funcionarios[3]");d.getElementById('dataFeriado').value='2026-01-05';d.getElementById('nomeFeriado').value='Feriado de teste';w.adicionarFeriado();
+    assert.equal(execute("escalaAtual['2026-01-05'].tipo"),'feriado');assert.equal(execute("escalaAtual['2026-01-05'].funcionario.registro"),'003');
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
 test('dashboard anual reúne os cards e conta cada ciclo sem considerar a cor personalizada',async()=>{
   const state=structuredClone(base);state.anoAtual=2024;state.ferias={};state.funcionarios=state.funcionarios.slice(0,3);state.funcionarios.forEach(f=>f.dataInicio='2023-01-01');state.funcionarios[1].dataFim='2024-06-01';state.funcionarios[2].dataInicio='2025-01-01';
   const {dom,window:w,document:d,execute}=await setup(state);
