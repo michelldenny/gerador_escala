@@ -11,6 +11,7 @@ test('aplicação abre para consulta sem login e só libera os formulários apó
     for(const name of ['validation.bundle.js','storage.js','app.js','schedule.js','exports.js','xml-import.js','interface.js','editor.js'])new vm.Script(fs.readFileSync(new URL(name,dir),'utf8')).runInContext(dom.getInternalVMContext());
     w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await new Promise(resolve=>setImmediate(resolve));
     assert.equal(w.document.getElementById('loginPanel'),null);assert.equal(w.persistencia.canEdit,false);assert.equal(w.document.getElementById('nomeFuncionario').disabled,true);assert.equal(w.document.getElementById('appContent').inert,false);
+    assert.ok(w.document.querySelector('.holiday-table button').disabled);assert.ok([...w.document.querySelectorAll('.management-table button')].every(button=>button.disabled));
     const day=w.document.querySelector('#calendario [data-data]').dataset.data;w.abrirDia(day);
     assert.ok([...w.document.querySelectorAll('input[name=dayColor]')].every(input=>input.disabled));w.document.querySelector('.day-card .soft-button').click();
     const original=JSON.stringify(w.estadoInicial);w.document.querySelector(`#calendario [data-data="${day}"]`).click();

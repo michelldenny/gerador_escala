@@ -205,6 +205,30 @@ function escapeXML(valor) {
     return String(valor ?? '').replace(/[&<>'"]/g, caractere => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&apos;', '"': '&quot;' }[caractere]));
 }
 
+function celulaTabela(linha,texto,classe='') {
+    const cell=document.createElement('td');cell.textContent=texto;cell.className=classe;linha.append(cell);return cell;
+}
+function seloTabela(texto,tipo) {
+    const badge=document.createElement('span');badge.className=`table-pill table-pill--${tipo}`;badge.textContent=texto;return badge;
+}
+function acaoTabela(rotulo,icone,acao) {
+    const button=document.createElement('button');button.type='button';button.className='table-action';button.title=rotulo;button.setAttribute('aria-label',rotulo);
+    const icon=document.createElement('i');icon.className=`fas fa-${icone}`;icon.setAttribute('aria-hidden','true');button.append(icon);
+    button.disabled=window.persistencia?.canEdit===false;
+    button.onclick=()=>{if(window.persistencia?.canEdit===false){window.solicitarEdicao?.();return;}acao();};return button;
+}
+function vazioTabela(lista,colunas,mensagem) {
+    if(lista.children.length)return;
+    const row=document.createElement('tr'),cell=celulaTabela(row,mensagem,'management-empty');cell.colSpan=colunas;lista.append(row);
+}
+function classificarFeriado(data,nome) {
+    const ano=Number(data.slice(0,4)),padrao=carregarFeriados(ano)[data];
+    const normalizar=texto=>String(texto).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/^dia (?:de|da|do|das|dos) /,'');
+    if(!padrao || normalizar(nome)!==normalizar(padrao))return {texto:'Personalizado',tipo:'custom'};
+    if(calcularFeriadosMoveis(ano)[data])return {texto:'Móvel',tipo:'movable'};
+    return data.endsWith('-01-25')?{texto:'Municipal',tipo:'municipal'}:{texto:'Nacional',tipo:'national'};
+}
+
 function atualizarCiclos() {
     ciclosPorAno[anoAtual] = {
         diaSemana: parseInt(document.getElementById('cicloDiaSemanaInicio').value) || 0,
@@ -300,19 +324,15 @@ function atualizarListaFeriados() {
     
     const feriadosOrdenados = feriadosDoAnoAtual.sort();
     feriadosOrdenados.forEach(function([data, nome]) {
-        const item = document.createElement('div');
-        item.className = 'bg-white p-2 rounded mb-1 text-xs flex justify-between items-center';
-        item.innerHTML = `
-            <div>
-                <div class="font-semibold">${formatarData(data)}</div>
-                <div>${escapeHTML(nome)}</div>
-            </div>
-            <button onclick="removerFeriado(${escapeHTML(JSON.stringify(data))})" class="text-red-500 text-xs flex items-center justify-center p-1 rounded-full hover:bg-red-100">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-        lista.appendChild(item);
+        const item=document.createElement('tr');item.dataset.dataFeriado=data;
+        celulaTabela(item,data,'table-date');celulaTabela(item,nome,'table-name');
+        const tipo=classificarFeriado(data,nome);celulaTabela(item,'').append(seloTabela(tipo.texto,tipo.tipo));
+        celulaTabela(item,'','table-actions').append(acaoTabela(`Remover feriado ${nome} em ${formatarData(data)}`,'trash-alt',()=>removerFeriado(data)));
+        lista.append(item);
     });
+    vazioTabela(lista,4,'Nenhum feriado cadastrado neste ano.');
+    document.getElementById('tituloFeriados').textContent=`Feriados vigentes no ano ${anoAtual}`;
+    document.getElementById('totalFeriados').textContent=`${feriadosOrdenados.length} ${feriadosOrdenados.length===1?'dia cadastrado':'dias cadastrados'}`;
 }
 
 function removerFeriado(data) {
@@ -457,31 +477,23 @@ function atualizarListaFuncionarios() {
     lista.innerHTML = '';
     
     funcionarios.forEach((func, index) => {
-        const item = document.createElement('div');
-        item.className = 'bg-white p-2 rounded mb-1 text-xs flex justify-between items-center';
+        const item = document.createElement('tr');
         item.setAttribute('draggable', 'false');
         item.setAttribute('data-index', index);
         
         const hoje = formatarDataISO(new Date());
         const status = func.dataFim && hoje >= func.dataFim ? 'inactive' : (func.dataInicio && hoje < func.dataInicio ? 'scheduled' : 'active');
         const statusTexto = status === 'inactive' ? 'Inativo' : (status === 'scheduled' ? 'Entrada agendada' : 'Ativo');
-        const periodo = `${func.dataInicio && func.dataInicio !== '1900-01-01' ? 'Desde ' + formatarData(func.dataInicio) : 'Histórico completo'}${func.dataFim ? ' · até ' + formatarData(func.dataFim) : ''}`;
-        item.innerHTML = `
-            <div>
-                <div class="font-semibold">${escapeHTML(func.nome)}</div>
-                <div>RF ${escapeHTML(func.registro)}</div>
-                <div class="employee-meta">${periodo}</div>
-                <span class="status-pill status-${status}">${statusTexto}</span>
-            </div>
-            <div class="action-row">
-                <button onclick="editarFuncionario(${index})" title="Editar funcionário" class="text-blue-600 text-xs p-2 hover:bg-blue-50"><i class="fas fa-pen"></i></button>
-                <button onclick="removerFuncionario(${index})" title="Definir data de desligamento" class="text-amber-600 text-xs p-2 hover:bg-amber-50"><i class="fas fa-user-clock"></i></button>
-            </div>
-        `;
+        const periodo = `${func.dataInicio && func.dataInicio !== '1900-01-01' ? 'A partir de ' + formatarData(func.dataInicio) : 'Histórico'}${func.dataFim ? ' · até ' + formatarData(func.dataFim) : ''}`;
+        celulaTabela(item,func.nome,'table-name');celulaTabela(item,func.registro,'table-record');celulaTabela(item,func.telefone || '—','table-phone');
+        const vigencia=celulaTabela(item,periodo,'table-validity');if(func.dataFim)vigencia.title=`Fora da escala a partir de ${formatarData(func.dataFim)}`;
+        celulaTabela(item,'').append(seloTabela(statusTexto,status));
+        celulaTabela(item,'','table-actions').append(acaoTabela(`Editar funcionário ${func.nome}`,'pen',()=>editarFuncionario(index)),acaoTabela(`Definir desligamento de ${func.nome}`,'user-minus',()=>removerFuncionario(index)));
         
         lista.appendChild(item);
     });
-    document.getElementById('totalFuncionarios').textContent = `${funcionarios.length} ${funcionarios.length === 1 ? 'pessoa' : 'pessoas'}`;
+    vazioTabela(lista,6,'Cadastre o primeiro servidor no formulário acima.');
+    document.getElementById('totalFuncionarios').textContent = `Total: ${funcionarios.length} ${funcionarios.length === 1 ? 'servidor' : 'servidores'}`;
 }
 
 // === PREENCHIMENTO DE SELECTS ===
@@ -648,22 +660,21 @@ function atualizarListaFerias() {
         const funcionario = funcionarios.find(f => f.registro === registro);
         if (funcionario) {
             periodos.forEach((periodo, index) => {
-                const item = document.createElement('div');
-                item.className = 'bg-white p-2 rounded mb-1 text-xs';
-                item.innerHTML = `
-                    <div class="font-semibold">${escapeHTML(funcionario.nome)}</div>
-                    <div>${formatarData(periodo.inicio)} - ${formatarData(periodo.fim)}</div>
-                    <div class="action-row mt-2">
-                        <button onclick="editarFerias(${escapeHTML(JSON.stringify(registro))}, ${index})" class="text-blue-600 text-xs p-1"><i class="fas fa-pen mr-1"></i>Editar</button>
-                        <button onclick="removerFerias(${escapeHTML(JSON.stringify(registro))}, ${index})" class="text-red-500 text-xs p-1"><i class="fas fa-trash mr-1"></i>Remover</button>
-                    </div>
-                `;
+                const item=document.createElement('tr');item.dataset.registro=registro;item.dataset.periodo=index;
+                celulaTabela(item,funcionario.nome,'table-name');celulaTabela(item,registro,'table-record');
+                celulaTabela(item,formatarData(periodo.inicio),'table-date');celulaTabela(item,formatarData(periodo.fim),'table-date');
+                const dias=Math.round((Date.parse(periodo.fim+'T00:00:00Z')-Date.parse(periodo.inicio+'T00:00:00Z'))/86400000)+1;
+                celulaTabela(item,`${dias} ${dias===1?'dia':'dias'}`);
+                const hoje=formatarDataISO(new Date()),status=hoje<periodo.inicio?['Programadas','scheduled']:hoje>periodo.fim?['Concluídas','inactive']:['Em férias','active'];
+                celulaTabela(item,'').append(seloTabela(...status));
+                celulaTabela(item,'','table-actions').append(acaoTabela(`Editar férias de ${funcionario.nome} a partir de ${formatarData(periodo.inicio)}`,'pen',()=>editarFerias(registro,index)),acaoTabela(`Remover férias de ${funcionario.nome} a partir de ${formatarData(periodo.inicio)}`,'trash-alt',()=>removerFerias(registro,index)));
                 lista.appendChild(item);
             });
         }
     }
     const total = Object.values(ferias).reduce((soma, periodos) => soma + periodos.length, 0);
     document.getElementById('totalFerias').textContent = `${total} ${total === 1 ? 'período' : 'períodos'}`;
+    vazioTabela(lista,7,'Nenhum período de férias cadastrado.');
 }
 
 function removerFerias(registro, periodoIndex) {    ferias[registro].splice(periodoIndex, 1);

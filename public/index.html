@@ -12,6 +12,7 @@
     <script src="/vendor/jspdf.plugin.autotable.min.js"></script>
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/calendar.css">
+<link rel="stylesheet" href="/management.css">
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
     <div class="container mx-auto px-4 py-8">
@@ -58,9 +59,9 @@
                         </button>
                         <button id="cancelarEdicaoFuncionarioBtn" onclick="cancelarEdicaoFuncionario()" class="hidden bg-gray-100 text-gray-700 p-2 text-sm span-2">Cancelar edição</button>
                     </div>
-                    <div class="list-pane">
-                        <div class="list-heading"><strong>Equipe cadastrada</strong><span id="totalFuncionarios" class="text-xs text-gray-400"></span></div>
-                        <div id="listaFuncionarios"></div>
+                    <div class="list-pane management-pane">
+                        <div class="list-heading"><strong>Quadro de servidores cadastrados</strong><span id="totalFuncionarios" aria-live="polite"></span></div>
+                        <div class="management-table-scroll" tabindex="0" aria-label="Servidores cadastrados; deslize para os lados em telas pequenas"><table class="management-table employee-table"><caption class="sr-only">Nome, RF, telefone, vigência, status e ações dos servidores</caption><thead><tr><th scope="col">Nome</th><th scope="col">RF</th><th scope="col">Telefone</th><th scope="col">Vigência</th><th scope="col">Status</th><th scope="col">Ações</th></tr></thead><tbody id="listaFuncionarios"></tbody></table></div>
                     </div>
                 </div>
 
@@ -96,22 +97,22 @@
                     <h3 class="text-lg font-semibold mb-4 text-blue-800">
                         <i class="fas fa-plane mr-2"></i>Gestão de Férias
                     </h3>
-                    <div class="vacation-form">
-                    <label class="field-label" for="funcionarioFerias">Funcionário</label><select id="funcionarioFerias" class="w-full p-2 border rounded mb-2">
+                    <div class="vacation-form management-form">
+                    <div><label class="field-label" for="funcionarioFerias">Funcionário</label><select id="funcionarioFerias" class="w-full p-2 border rounded mb-2">
                         <option value="">Selecionar Funcionário</option>
-                    </select>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
+                    </select></div>
                         <div><label class="field-label" for="inicioFerias">Início</label><input type="date" id="inicioFerias" class="p-2 border rounded text-sm w-full"></div>
                         <div><label class="field-label" for="fimFerias">Fim</label><input type="date" id="fimFerias" class="p-2 border rounded text-sm w-full"></div>
-                    </div>
+                    <div class="management-form-actions">
                     <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 text-sm">
                         <i class="fas fa-plus mr-1"></i><span>Adicionar férias</span>
                     </button>
                     <button id="cancelarEdicaoFeriasBtn" onclick="cancelarEdicaoFerias()" class="hidden w-full bg-gray-100 text-gray-700 p-2 text-sm mt-2">Cancelar edição</button>
                     </div>
-                    <div class="list-pane">
-                        <div class="list-heading"><strong>Períodos cadastrados</strong><span id="totalFerias" class="text-xs text-gray-400"></span></div>
-                        <div id="listaFerias"></div>
+                    </div>
+                    <div class="list-pane management-pane">
+                        <div class="list-heading"><strong>Períodos de férias cadastrados</strong><span id="totalFerias" aria-live="polite"></span></div>
+                        <div class="management-table-scroll" tabindex="0" aria-label="Férias cadastradas; deslize para os lados em telas pequenas"><table class="management-table vacation-table"><caption class="sr-only">Funcionário, RF, início, fim, duração, situação e ações dos períodos de férias</caption><thead><tr><th scope="col">Funcionário</th><th scope="col">RF</th><th scope="col">Início</th><th scope="col">Fim</th><th scope="col">Dias</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead><tbody id="listaFerias"></tbody></table></div>
                     </div>
                 </div>
 
@@ -120,14 +121,17 @@
                     <h3 class="text-lg font-semibold mb-4 text-green-800">
                         <i class="fas fa-calendar-check mr-2"></i>Controle de Feriados
                     </h3>
-                    <input type="date" id="dataFeriado" class="w-full p-2 border rounded mb-2">
-                    <input type="text" id="nomeFeriado" placeholder="Nome do feriado" class="w-full p-2 border rounded mb-2 text-sm">
+                    <div class="management-form holiday-form">
+                    <div><label class="field-label" for="dataFeriado">Data</label><input type="date" id="dataFeriado" class="w-full p-2 border rounded mb-2"></div>
+                    <div><label class="field-label" for="nomeFeriado">Nome do feriado</label><input type="text" id="nomeFeriado" placeholder="Nome do feriado" class="w-full p-2 border rounded mb-2 text-sm"></div>
+                    <div class="management-form-actions">
                         <button onclick="adicionarFeriado()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 text-sm">
                         <i class="fas fa-plus mr-1"></i>Adicionar Feriado
                     </button>
-                    <div class="list-pane holiday-list-pane">
-                        <div class="list-heading"><strong>Feriados do ano</strong></div>
-                        <div id="listaFeriados"></div>
+                    </div></div>
+                    <div class="list-pane holiday-list-pane management-pane">
+                        <div class="list-heading"><strong id="tituloFeriados">Feriados vigentes no ano</strong><span id="totalFeriados" aria-live="polite"></span></div>
+                        <div class="management-table-scroll" tabindex="0" aria-label="Feriados do ano; deslize para os lados em telas pequenas"><table class="management-table holiday-table"><caption class="sr-only">Data, nome, tipo e ação dos feriados no ano selecionado</caption><thead><tr><th scope="col">Data</th><th scope="col">Nome do feriado</th><th scope="col">Tipo</th><th scope="col">Ação</th></tr></thead><tbody id="listaFeriados"></tbody></table></div>
                     </div>
                 </div>
                 </div>

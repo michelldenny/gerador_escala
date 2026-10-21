@@ -21,9 +21,6 @@ window.atualizarResumo=function() {
   const unavailable=shifts.filter(([day,shift]) => shift.funcionario && (!funcionarioAtivoNaData(shift.funcionario,day) || estaEmFerias(shift.funcionario,day)));
   warnings.hidden=!consecutive.length && !unavailable.length;
   warnings.textContent=[consecutive.length ? `${consecutive.length} plantão(ões) consecutivo(s) para revisar` : '',unavailable.length ? `${unavailable.length} atribuição(ões) fora da disponibilidade` : ''].filter(Boolean).join(' · ')+'. As atribuições manuais foram mantidas.';
-  for(const [id,message] of [['listaFuncionarios','Sua equipe começa aqui. Cadastre o primeiro funcionário ao lado.'],['listaFerias','Nenhum período de férias cadastrado.'],['listaFeriados','Nenhum feriado neste ano.']]) {
-    const list=document.getElementById(id); if(!list.children.length) { const empty=document.createElement('p'); empty.className='empty-state'; empty.textContent=message; list.append(empty); }
-  }
 };
 
 function obterResumoAnual() {

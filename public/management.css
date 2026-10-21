@@ -1,0 +1,42 @@
+/* Full-width tables share the system's surfaces, borders and accent color. */
+.management-grid:not(.single-panel){grid-template-columns:minmax(0,1fr)!important;gap:20px!important}
+.management-grid .overview-lists{grid-column:1!important;grid-row:auto!important;width:100%}
+.management-grid .editor-stack{min-width:0}
+.employee-card .form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:0}
+.management-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:end;margin-top:18px}
+.management-form>div{min-width:0}.management-form input,.management-form select{width:100%;margin-bottom:0!important}
+.management-form-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px}
+.management-form-actions button{width:auto!important;margin:0!important;padding:10px 16px!important;min-height:38px}
+.holiday-form{grid-template-columns:minmax(170px,1fr) minmax(220px,2fr) auto}
+.holiday-form .management-form-actions{grid-column:auto}
+.list-pane.management-pane{padding:0;border:1px solid #dce5ef;border-radius:11px;overflow:hidden;background:#fff;box-shadow:0 2px 3px #263b4910}
+.management-pane .list-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;margin:0;border-top:0;border-bottom:1px solid #e1e8f0;background:#f8fafc}
+.management-pane .list-heading strong{font-size:13px;color:#122c42;font-weight:700}
+.management-pane .list-heading>span{font-size:12px;color:#71839a;text-align:right;white-space:nowrap}
+.management-table-scroll{overflow-x:auto;max-width:100%;outline-offset:-3px}
+.management-table{width:100%;border-collapse:collapse;font-size:12px}
+.employee-table{min-width:800px}.vacation-table{min-width:780px}.holiday-table{min-width:590px}
+.management-table th{padding:14px 18px;background:#f8fafc;text-align:left;color:#708299;font-size:10px;text-transform:uppercase;letter-spacing:.55px;font-weight:650;white-space:nowrap}
+.management-table td{padding:15px 18px;border-top:1px solid #edf1f5;color:#344d64;vertical-align:middle;line-height:1.55}
+.management-table tbody tr:hover{background:#fbfcfe}
+.management-table .table-name{font-weight:600;color:#000;min-width:190px;overflow-wrap:anywhere}
+.management-table .table-record,.management-table .table-phone,.management-table .table-date{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:11px}
+.management-table .table-validity{font-size:11px;color:#7a8a9c;min-width:180px;max-width:250px}
+.management-table th:last-child,.management-table td.table-actions{text-align:right;white-space:nowrap}
+.management-table .table-action{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:30px;height:30px;padding:0;border:0;background:transparent;border-radius:6px!important;color:#71839b;font-size:12px;margin-left:3px}
+.management-table .table-action:hover{background:#eaf5f0;color:var(--accent);transform:none}
+.management-table .table-action:disabled{cursor:default;opacity:.35;background:transparent;color:#8595a6}
+.management-table .table-action:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.table-pill{display:inline-block;padding:1px 8px;border:1px solid transparent;border-radius:999px;font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap}
+.table-pill--active{background:#edfcf5;border-color:#a8e8cb;color:#087558}
+.table-pill--inactive{background:#f1f5f9;border-color:#dce5ef;color:#5b6d83}
+.table-pill--scheduled{background:#eff6ff;border-color:#bfd8fa;color:#386bb0}
+.table-pill--national{background:#fff1f2;border-color:#fecdd3;color:#bd2448}
+.table-pill--municipal{background:#f8f1ff;border-color:#e6d4fb;color:#8649bf}
+.table-pill--movable{background:#fffbeb;border-color:#f7d98b;color:#a77410}
+.table-pill--custom{background:#edf7f5;border-color:#bddfd5;color:#377f70}
+.management-table .management-empty{text-align:center;color:#8a99a8;padding:32px 18px;font-size:12px}
+#listaFuncionarios,#listaFerias,#listaFeriados{display:table-row-group!important;margin:0!important;max-height:none!important;overflow:visible!important}
+@media(max-width:850px){.employee-card .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.management-form{grid-template-columns:repeat(2,minmax(0,1fr))}.holiday-form .management-form-actions{grid-column:1/-1}.management-pane .list-heading{padding:16px}.management-table td,.management-table th{padding:13px 15px}}
+@media(max-width:520px){.employee-card .form-grid,.management-form{grid-template-columns:minmax(0,1fr)}.employee-card .form-grid .span-2{grid-column:auto}.management-pane .list-heading{align-items:flex-start;flex-direction:column;gap:6px}.management-form-actions button{flex:1}.management-form-actions{grid-column:1}.management-pane .list-heading>span{text-align:left}.management-table .table-name{min-width:175px}}
+@media print{.management-table{min-width:0}.management-table-scroll{overflow:visible}.table-actions{display:none}}

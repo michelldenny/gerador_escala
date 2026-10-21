@@ -12,6 +12,7 @@ async function setup(initial=base) {
   await new Promise(resolve => dom.window.addEventListener('load',resolve));
   const context=dom.getInternalVMContext(); const execute=code => new vm.Script(code).runInContext(context);
   dom.window.structuredClone=structuredClone;
+  dom.window.HTMLElement.prototype.scrollIntoView=()=>{};
   dom.window.validarEstado=validateState;
   dom.window.TextDecoder=TextDecoder;
   dom.window.estadoInicial=structuredClone(initial); dom.window.saved=null;
@@ -57,7 +58,7 @@ test('exportação PDF, Word e XML mantém equipe e dados do mês',async () => {
 test('nomes e registros importados são escapados na interface',async () => {
   const state=structuredClone(base); state.funcionarios[0].nome='<img src=x onerror=alert(1)>'; state.funcionarios[0].registro="RF'\"<unsafe>"; state.ferias={ [state.funcionarios[0].registro]:[{inicio:'2026-10-01',fim:'2026-10-15'}] };
   const {dom,document:d,execute}=await setup(state);
-  try { assert.equal(d.querySelectorAll('#listaFuncionarios img').length,0); assert.equal(d.querySelectorAll('#listaFerias unsafe').length,0); const button=d.querySelector('#listaFerias button'); assert.doesNotThrow(() => execute(button.getAttribute('onclick'))); assert.equal(d.getElementById('funcionarioFerias').value,state.funcionarios[0].registro); } finally {dom.window.close();}
+  try { assert.equal(d.querySelectorAll('#listaFuncionarios img').length,0); assert.equal(d.querySelectorAll('#listaFerias unsafe').length,0); const button=d.querySelector('#listaFerias button'); assert.doesNotThrow(() => button.click()); assert.equal(d.getElementById('funcionarioFerias').value,state.funcionarios[0].registro); } finally {dom.window.close();}
 });
 
 test('migração XML lê arquivos legados sem alterar o estado antes de validar',async () => {
@@ -205,6 +206,56 @@ test('dashboard sem funcionários mostra totais zerados sem divisão inválida',
     w.mostrarTela('dashboard');assert.equal(d.getElementById('metricDays').textContent,'365');assert.equal(d.getElementById('metricTeam').textContent,'0');
     assert.equal(d.getElementById('metricAverage').textContent,'0');assert.equal(d.getElementById('metricShifts').textContent,'0');
     assert.match(d.getElementById('dashboardRows').textContent,/Cadastre funcionários/);assert.ok(!d.getElementById('dashboardScreen').textContent.includes('NaN'));
+  }finally{dom.window.close();}
+});
+
+test('tabela de servidores mantém telefone, vigência, edição e desligamento sem apagar histórico',async()=>{
+  const state=structuredClone(base);state.funcionarios[0].dataInicio='1900-01-01';
+  const {dom,window:w,document:d}=await setup(state);
+  try{
+    assert.deepEqual([...d.querySelectorAll('.employee-table th')].map(el=>el.textContent),['Nome','RF','Telefone','Vigência','Status','Ações']);
+    const row=d.querySelector('#listaFuncionarios tr');assert.equal(row.cells[0].textContent,'Pessoa 1');assert.equal(row.cells[2].textContent,state.funcionarios[0].telefone);assert.equal(row.cells[3].textContent,'Histórico');
+    row.querySelector('button').click();assert.equal(d.getElementById('nomeFuncionario').value,'Pessoa 1');
+    row.querySelectorAll('button')[1].click();assert.ok(!d.getElementById('desligamentoModal').classList.contains('hidden'));
+    const hoje=w.formatarDataISO(new Date());d.getElementById('dataDesligamento').value=hoje;w.confirmarDesligamento();
+    assert.equal(w.saved.funcionarios.length,5);assert.equal(w.saved.funcionarios[0].dataFim,hoje);assert.match(d.querySelector('#listaFuncionarios tr').textContent,/Inativo/);
+    assert.match(d.getElementById('totalFuncionarios').textContent,/5 servidores/);await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('tabela de feriados ordena e filtra o ano, classifica a lista padrão e remove o dia escolhido',async()=>{
+  const state=structuredClone(base);state.feriados={'2026-12-25':'Natal','2026-01-25':'Aniversário de São Paulo','2026-02-17':'Carnaval','2026-07-07':'Feriado da equipe','2025-12-25':'Natal antigo'};
+  const {dom,window:w,document:d}=await setup(state);
+  try{
+    const rows=[...d.querySelectorAll('#listaFeriados tr')];assert.equal(rows.length,4);assert.equal(rows[0].cells[0].textContent,'2026-01-25');
+    assert.equal(rows[0].cells[2].textContent,'Municipal');assert.equal(rows[1].cells[2].textContent,'Móvel');assert.equal(rows[2].cells[2].textContent,'Personalizado');assert.equal(rows[3].cells[2].textContent,'Nacional');
+    assert.equal(w.classificarFeriado('2026-11-20','Dia da Consciência Negra').tipo,'national');
+    assert.equal(w.classificarFeriado('2026-12-25','Evento da equipe').tipo,'custom');
+    rows[2].querySelector('button').click();assert.equal(w.saved.feriados['2026-07-07'],undefined);assert.equal(w.saved.feriados['2025-12-25'],'Natal antigo');
+    assert.equal(d.getElementById('totalFeriados').textContent,'3 dias cadastrados');
+    w.proximoAno();assert.match(d.getElementById('tituloFeriados').textContent,/2027/);await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('tabela de férias conta dias inclusivos em ano bissexto e mantém edição e remoção por registro',async()=>{
+  const state=structuredClone(base);state.funcionarios.forEach(f=>f.dataInicio='1900-01-01');state.ferias={'001':[{inicio:'2024-02-28',fim:'2024-03-01'}]};
+  const {dom,window:w,document:d}=await setup(state);
+  try{
+    assert.deepEqual([...d.querySelectorAll('.vacation-table th')].map(el=>el.textContent),['Funcionário','RF','Início','Fim','Dias','Situação','Ações']);
+    const row=d.querySelector('#listaFerias tr');assert.equal(row.cells[0].textContent,'Pessoa 1');assert.equal(row.cells[1].textContent,'001');assert.equal(row.cells[4].textContent,'3 dias');
+    row.querySelector('button').click();assert.equal(d.getElementById('funcionarioFerias').value,'001');assert.equal(d.getElementById('inicioFerias').value,'2024-02-28');
+    row.querySelectorAll('button')[1].click();assert.equal(w.saved.ferias['001'],undefined);assert.equal(d.getElementById('totalFerias').textContent,'0 períodos');
+    assert.equal(d.querySelector('#listaFerias tr td').colSpan,7);await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('listas vazias preservam linhas válidas nas tabelas e mostram totais zerados',async()=>{
+  const state=structuredClone(base);state.funcionarios=[];state.ferias={};
+  const {dom,document:d,execute}=await setup(state);
+  try{
+    execute('feriados={};atualizarListaFeriados();atualizarResumo()');
+    for(const [id,columns] of [['listaFuncionarios',6],['listaFerias',7],['listaFeriados',4]]){const body=d.getElementById(id);assert.equal(body.tagName,'TBODY');assert.equal(body.children.length,1);assert.equal(body.firstElementChild.tagName,'TR');assert.equal(body.querySelector('td').colSpan,columns);assert.equal(body.querySelector('p'),null);}
+    assert.equal(d.getElementById('totalFeriados').textContent,'0 dias cadastrados');
   }finally{dom.window.close();}
 });
 

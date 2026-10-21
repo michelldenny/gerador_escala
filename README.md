@@ -25,6 +25,8 @@ O calendário utiliza cores suaves no dia inteiro: azul (segunda a sexta), verde
 
 A quarta aba, **Dashboard**, concentra todos os cards e mostra a distribuição anual por funcionário: dias úteis, fins de semana, feriados, fim de ano, total e proporção sobre os plantões atribuídos. As contagens usam o ciclo real, independente de cores manuais. Os indicadores mostram dias do ano (incluindo anos bissextos), fiscais com vigência em algum dia do ano, média de plantões por fiscal e plantões atribuídos. Use as setas para consultar outros anos.
 
+Em **Equipe e regras**, os quadros de servidores, feriados e férias usam tabelas com cabeçalhos, totais, selos de situação e ações acessíveis por ícones. Os formulários ficam acima das tabelas e a rolagem horizontal preserva todas as colunas no celular. Servidores exibem telefone e vigência, com edição e desligamento sem apagar o histórico. Férias exibem datas, duração inclusiva e situação. Os tipos dos feriados são derivados dos nomes e datas da lista padrão do sistema; os demais são identificados como personalizados. Todas as ações de alteração continuam exigindo a senha.
+
 A senha é verificada no servidor. Todas as alterações exigem sessão autorizada, origem válida e token da aplicação. Conhecer o token público não libera edição. As sessões duram 8 horas; **Bloquear edição** revoga a sessão. Alterar o hash invalida sessões anteriores.
 
 A conexão PostgreSQL não é enviada ao navegador. Sessões e limites de tentativas são compartilhados entre instâncias. Apenas o hash do token de sessão e um identificador derivado do endereço de rede são armazenados. SQLite local utiliza sessões em memória.
