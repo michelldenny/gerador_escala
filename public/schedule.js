@@ -162,6 +162,13 @@ function gerarEscala() {
             else if (feriados[dataStr]) {
                 tipo = 'feriado';
                 funcionario = obterProximoFuncionario('feriado', dataStr);
+                const manual=trocasManuais[dataStr];
+                if(manual){
+                    funcionario=manual;
+                    const elegiveis=funcionarios.filter(f=>funcionarioAtivoNaData(f,dataStr));
+                    const posicao=elegiveis.findIndex(f=>f.registro===manual.registro);
+                    if(posicao>=0)indiceFeriado=(posicao+1)%elegiveis.length;
+                }
             }
             else if (diaSemana === 0 || diaSemana === 6) {
                 tipo = 'fimSemana';
@@ -210,6 +217,8 @@ function validarPlantõesConsecutivos() {
         if (fixado(datas[indiceA]) || fixado(datas[indiceB])) return false;
         const escalaA = escalaAtual[datas[indiceA]];
         const escalaB = escalaAtual[datas[indiceB]];
+        // Holiday order is a queue. Conflict repair must not reorder or borrow its assignments.
+        if(escalaA?.tipo==='feriado' || escalaB?.tipo==='feriado')return false;
         const funcionarioA = escalaA?.funcionario;
         const funcionarioB = escalaB?.funcionario;
         if (!funcionarioA || !funcionarioB || funcionarioA.registro === funcionarioB.registro) return false;
@@ -238,7 +247,7 @@ function validarPlantõesConsecutivos() {
             if (!conflitoNoIndice(i)) continue;
             const anterior = escalaAtual[datas[i - 1]];
             const atual = escalaAtual[datas[i]];
-            if ((prioridade[atual.tipo] || 0) > (prioridade[anterior.tipo] || 0)) {
+            if (atual.tipo==='feriado' || (anterior.tipo!=='feriado' && (prioridade[atual.tipo] || 0) > (prioridade[anterior.tipo] || 0))) {
                 // O ciclo atual tem prioridade: mantém o dia atual e inverte o anterior para trás.
                 for (let candidato = i - 2; candidato >= 0; candidato--) {
                     if (trocaValida(i - 1, candidato)) {

@@ -70,7 +70,7 @@ test('migração XML lê arquivos legados sem alterar o estado antes de validar'
   } finally {dom.window.close();}
 });
 
-test('regressão: rodízio anual produz os mesmos plantões do HTML original',async () => {
+test('regressão: rodízio base dos ciclos preserva o HTML original antes das correções de consecutivos',async () => {
   const originalHtml=readFileSync(new URL('../reference/original.html',import.meta.url),'utf8');
   let original=originalHtml.slice(originalHtml.lastIndexOf('<script>')+8,originalHtml.lastIndexOf('</script>'));
   original=original.replace("document.addEventListener('DOMContentLoaded', function() {",'window.inicializarEscalas = function() {').replace(/(mostrarTela\(funcionarios.length \? 'escala' : 'configuracoes'\);\s*)\}\);/,'$1};');
@@ -79,6 +79,9 @@ test('regressão: rodízio anual produz os mesmos plantões do HTML original',as
     const upgraded=await setup(state); const old=new JSDOM(originalHtml,{runScripts:'outside-only',url:'http://localhost/',pretendToBeVisual:true}); await new Promise(resolve => old.window.addEventListener('load',resolve));
     try {
       old.window.localStorage.setItem('escala-defesa-civil-v2',JSON.stringify(state)); new vm.Script(original).runInContext(old.getInternalVMContext()); old.window.inicializarEscalas();
+      // The old conflict repair reordered holidays; the base rotation must still match.
+      upgraded.execute('validarPlantõesConsecutivos=()=>{};gerarEscala()');
+      new vm.Script('validarPlantõesConsecutivos=()=>{};gerarEscala()').runInContext(old.getInternalVMContext());
       const snapshot=`JSON.stringify(Object.entries(escalaAtual).map(([date,shift]) => [date,shift.tipo,shift.funcionario?.registro || null]))`;
       assert.equal(upgraded.execute(snapshot),new vm.Script(snapshot).runInContext(old.getInternalVMContext()),`ano ${year}`);
     } finally {upgraded.dom.window.close();old.window.close();}
@@ -198,6 +201,42 @@ test('popup e cadastro de feriados também aplicam o ciclo ao alterar a classifi
     w.removerFeriado('2026-01-05');assert.equal(execute("escalaAtual['2026-01-05'].funcionario.registro"),'001');
     execute("trocasManuais['2026-01-05']=funcionarios[3]");d.getElementById('dataFeriado').value='2026-01-05';d.getElementById('nomeFeriado').value='Feriado de teste';w.adicionarFeriado();
     assert.equal(execute("escalaAtual['2026-01-05'].tipo"),'feriado');assert.equal(execute("escalaAtual['2026-01-05'].funcionario.registro"),'003');
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('inserir 12/11 desloca toda a fila futura de feriados, incluindo atribuições importadas',async()=>{
+  const state=structuredClone(base);state.ferias={};state.mesAtualIndex=10;
+  state.funcionarios[0].nome='Drailton';state.funcionarios[1].nome='Gabriel';
+  state.feriados={'2026-11-02':'Finados','2026-11-20':'Consciência Negra','2026-11-25':'Feriado A','2026-11-30':'Feriado B'};
+  state.trocasManuais=Object.fromEntries(['2026-11-02','2026-11-20','2026-11-25','2026-11-30'].map((day,index)=>[day,state.funcionarios[index]]));
+  state.trocasManuais['2026-11-13']=state.funcionarios[4];state.trocasPorAno={2026:structuredClone(state.trocasManuais),2027:{'2027-04-21':state.funcionarios[1]}};
+  const {dom,window:w,document:d,execute}=await setup(state);
+  const assigned=day=>execute(`escalaAtual['${day}'].funcionario?.registro`);
+  try{
+    assert.equal(assigned('2026-11-02'),'001');assert.equal(assigned('2026-11-20'),'002');
+    d.querySelector('[data-data="2026-11-12"] .day-toggle').click();
+    for(const [day,record] of [['2026-11-02','001'],['2026-11-12','002'],['2026-11-20','003'],['2026-11-25','004'],['2026-11-30','005']])assert.equal(assigned(day),record,day);
+    assert.equal(w.saved.trocasManuais['2026-11-02'].registro,'001');assert.equal(w.saved.trocasManuais['2026-11-20'],undefined);assert.equal(w.saved.trocasPorAno[2026]['2026-11-30'],undefined);
+    assert.equal(w.saved.trocasManuais['2026-11-13'].registro,'005');assert.equal(w.saved.trocasPorAno[2027]['2027-04-21'].registro,'002');
+    const reopened=await setup(w.saved);assert.equal(reopened.execute("escalaAtual['2026-11-12'].funcionario.registro"),'002');assert.equal(reopened.execute("escalaAtual['2026-11-20'].funcionario.registro"),'003');reopened.dom.window.close();
+    d.querySelector('[data-data="2026-11-12"] .day-toggle').click();
+    for(const [day,record] of [['2026-11-02','001'],['2026-11-20','002'],['2026-11-25','003'],['2026-11-30','004']])assert.equal(assigned(day),record,`remover: ${day}`);
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('a fila continua após o último feriado manual e não é reordenada para evitar consecutivos',async()=>{
+  const state=structuredClone(base);state.ferias={};state.mesAtualIndex=10;state.feriados={'2026-11-02':'Finados','2026-11-20':'Consciência Negra'};
+  state.trocasManuais={'2026-11-02':state.funcionarios[2],'2026-11-03':state.funcionarios[2],'2026-11-11':state.funcionarios[3]};
+  const {dom,window:w,execute}=await setup(state);
+  try{
+    w.toggleFeriado('2026-11-12');
+    assert.equal(execute("escalaAtual['2026-11-02'].funcionario.registro"),'003');
+    assert.equal(execute("escalaAtual['2026-11-12'].funcionario.registro"),'004');
+    assert.equal(execute("escalaAtual['2026-11-20'].funcionario.registro"),'005');
+    assert.equal(execute("escalaAtual['2026-11-11'].funcionario.registro"),'004');
+    assert.equal(execute("escalaAtual['2026-11-12'].tipo"),'feriado');
     await new Promise(resolve=>setImmediate(resolve));
   }finally{dom.window.close();}
 });

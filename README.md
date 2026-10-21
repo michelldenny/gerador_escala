@@ -19,7 +19,7 @@ SQLite permanece disponível somente para desenvolvimento/recuperação local co
 
 ## Funcionalidades e segurança
 
-Marcar ou desmarcar um feriado recalcula o responsável pelo ciclo correspondente. Uma atribuição manual anterior desse dia é removida para não substituir o novo cálculo; as atribuições dos demais dias são preservadas. Isso vale para o clique no calendário, o popup e o cadastro/remoção de feriados. A prioridade já definida para o período especial de fim de ano permanece.
+Marcar ou desmarcar um feriado insere ou remove uma posição na fila e desloca todos os feriados seguintes do mesmo ano. As atribuições manuais do dia alterado e dos feriados posteriores são removidas para permitir esse recálculo; as atribuições anteriores, as de outros ciclos e as de outros anos são preservadas. O último feriado com atribuição manual também define de onde a fila continua. A correção de plantões consecutivos não troca responsáveis de feriados: mantém a fila e sinaliza os conflitos que não puder resolver. Isso vale para o clique no calendário, o popup e o cadastro/remoção de feriados. A prioridade já definida para o período especial de fim de ano permanece.
 
 Calendário, rodízio anual, funcionários, vigências, férias, feriados, trocas, fim de ano, PDF, Word, XML, backup JSON e versões foram preservados. Importações são validadas antes de gravar. Revisões antigas são rejeitadas para impedir sobrescritas.
 

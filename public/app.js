@@ -290,8 +290,11 @@ function definirFeriado(data,nome) {
     const mudouCiclo=Boolean(feriados[data])!==Boolean(nome);
     if(nome)feriados[data]=nome;else delete feriados[data];
     if(mudouCiclo){
-        delete trocasManuais[data];
-        const ano=data.slice(0,4);if(trocasPorAno[ano])delete trocasPorAno[ano][data];
+        const ano=data.slice(0,4);
+        // Inserting/removing a holiday shifts the remaining queue, including imported manual slots.
+        const afetada=dia=>dia===data || (dia>data && dia.startsWith(ano+'-') && Boolean(feriados[dia]) && !isFimAno(dia));
+        for(const dia of Object.keys(trocasManuais))if(afetada(dia))delete trocasManuais[dia];
+        if(trocasPorAno[ano])for(const dia of Object.keys(trocasPorAno[ano]))if(afetada(dia))delete trocasPorAno[ano][dia];
     }
     return mudouCiclo;
 }
