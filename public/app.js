@@ -768,7 +768,7 @@ function atualizarCalendario() {
     const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     diasSemana.forEach(dia => {
         const headerDiv = document.createElement('div');
-        headerDiv.className = 'calendar-weekday text-center font-bold p-2 bg-gray-200';
+        headerDiv.className = 'calendar-weekday font-heading text-center font-bold p-2 bg-gray-200';
         headerDiv.textContent = dia;
         calendario.appendChild(headerDiv);
     });
@@ -800,10 +800,10 @@ function atualizarCalendario() {
         diaDiv.dataset.cor=cor;
         diaDiv.dataset.ciclo=isFimAno(dataStr)?'fimDeAno':feriados[dataStr]?'feriado':([0,6].includes(data.getDay())?'fimSemana':'semana');
         
-        let conteudo = `<button type="button" class="day-toggle" aria-label="${feriados[dataStr]?'Desmarcar':'Marcar'} feriado em ${formatarData(dataStr)}">${dia}</button>`;
+        let conteudo = `<button type="button" class="day-toggle font-bold" aria-label="${feriados[dataStr]?'Desmarcar':'Marcar'} feriado em ${formatarData(dataStr)}">${dia}</button>`;
         const nome=funcionario ? funcionario.nome+(estaEmFerias(funcionario,dataStr)?' (FÉRIAS)':'') : 'Sem responsável';
         conteudo += `<button type="button" class="day-employee font-semibold" aria-label="Editar plantão de ${formatarData(dataStr)}: ${escapeHTML(nome)}">${escapeHTML(nome)}</button>`;
-        if(funcionario)conteudo+=`<div class="text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(funcionario.registro)}</div>`;
+        if(funcionario)conteudo+=`<div class="day-rf font-mono font-medium text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(funcionario.registro)}</div>`;
         
         if (feriados[dataStr]) {
             conteudo += `<div class="text-xs text-red-600 font-bold hidden sm:block">${escapeHTML(feriados[dataStr])}</div>`;
