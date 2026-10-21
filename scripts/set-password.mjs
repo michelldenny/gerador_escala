@@ -19,4 +19,9 @@ try {
   console.log('para ESCALA_EDITOR_PASSWORD_HASH. Salve e faça Redeploy.');
   console.log('Para uso local, reinicie o servidor.');
 }catch(error){console.error(error.message);process.exitCode=1;}
-finally{if(process.stdin.isTTY && Boolean(process.stdin.isRaw)!==wasRaw)process.stdin.setRawMode(wasRaw);process.stdin.pause();}
+finally{
+  if(process.stdin.isTTY && Boolean(process.stdin.isRaw)!==wasRaw)process.stdin.setRawMode(wasRaw);
+  process.stdin.pause();
+  // ConPTY can retain a pending keyboard read after raw mode ends.
+  process.stdout.write('',()=>process.exit(process.exitCode || 0));
+}
