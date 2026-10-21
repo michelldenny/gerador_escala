@@ -13,6 +13,9 @@ test('aplicação abre para consulta sem login e só libera os formulários apó
     assert.equal(w.document.getElementById('loginPanel'),null);assert.equal(w.persistencia.canEdit,false);assert.equal(w.document.getElementById('nomeFuncionario').disabled,true);assert.equal(w.document.getElementById('appContent').inert,false);
     const day=w.document.querySelector('#calendario [data-data]').dataset.data;w.abrirDia(day);
     assert.ok([...w.document.querySelectorAll('input[name=dayColor]')].every(input=>input.disabled));w.document.querySelector('.day-card .soft-button').click();
+    const original=JSON.stringify(w.estadoInicial);w.document.querySelector(`#calendario [data-data="${day}"]`).click();
+    assert.equal(JSON.stringify(w.estadoInicial),original);assert.ok(w.document.getElementById('editorDialog'));
+    w.document.querySelector('#editorDialog .soft-button').click();
     w.document.getElementById('editorToggle').click();assert.ok(w.document.getElementById('editorDialog'));
     w.document.getElementById('editorPassword').value='senha-apenas-de-teste';w.document.querySelector('#editorDialog form').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(resolve=>setImmediate(resolve));
     assert.equal(w.persistencia.canEdit,true);assert.equal(w.document.getElementById('nomeFuncionario').disabled,false);assert.equal(w.document.getElementById('editorDialog'),null);

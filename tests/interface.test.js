@@ -25,7 +25,7 @@ test('cadastro, edição de dia, férias, navegação anual e documentos',async 
   try {
     assert.equal(d.getElementById('appContent').inert,false); assert.equal(d.querySelectorAll('#calendario [data-data]').length,31);
     assert.equal(d.querySelectorAll('#listaFuncionarios [data-index]').length,5);
-    assert.equal(d.getElementById('metricVacation').textContent,'1');
+    assert.equal(d.getElementById('metricTeam').textContent,'5');
     w.mostrarTela('configuracoes');
     d.getElementById('nomeFuncionario').value='Nova Pessoa'; d.getElementById('registroFuncionario').value='006'; d.getElementById('telefoneFuncionario').value='11900000006'; d.getElementById('inicioFuncionario').value='2026-11-01'; w.adicionarFuncionario();
     assert.equal(w.saved.funcionarios.length,6); assert.equal(w.saved.funcionarios[5].registro,'006');
@@ -151,6 +151,60 @@ test('barra lateral retrai, expande e guarda a preferência visual',async()=>{
     const button=d.getElementById('sidebarToggle');assert.equal(button.getAttribute('aria-expanded'),'true');button.click();
     assert.ok(d.body.classList.contains('sidebar-collapsed'));assert.equal(button.getAttribute('aria-expanded'),'false');assert.equal(w.localStorage.getItem('escala-sidebar-collapsed'),'true');
     button.click();assert.equal(button.getAttribute('aria-expanded'),'true');assert.ok(!d.body.classList.contains('sidebar-collapsed'));
+  }finally{dom.window.close();}
+});
+
+test('clique no quadrado alterna feriado e clique no nome abre somente a edição',async()=>{
+  const state=structuredClone(base);state.ferias={};state.coresDias={'2026-10-05':'outros'};
+  const {dom,window:w,document:d,execute}=await setup(state);
+  try{
+    const day='2026-10-05',cell=()=>d.querySelector(`[data-data="${day}"]`);
+    let draggedDate;w.handleDragStart({target:cell().querySelector('.day-employee'),dataTransfer:{setData(type,value){draggedDate=value;}}});assert.equal(draggedDate,day);
+    cell().click();assert.equal(w.saved.feriados[day],'Feriado');assert.equal(cell().dataset.cor,'feriado');assert.equal(d.querySelector('.day-overlay'),null);
+    const revision=JSON.stringify(w.saved);cell().querySelector('.day-employee').click();
+    assert.ok(d.querySelector('.day-overlay'));assert.equal(JSON.stringify(w.saved),revision,'Nome não marca/desmarca feriado');
+    d.querySelector('.day-card .soft-button').click();
+    cell().querySelector('.day-toggle').click();assert.equal(w.saved.feriados[day],undefined);assert.equal(cell().dataset.cor,'semana');
+    execute("escalaAtual['2026-10-05'].funcionario=null;atualizarCalendario()");cell().querySelector('.day-employee').click();
+    assert.ok(d.querySelector('.day-overlay'),'Sem responsável também permite abrir a atribuição');
+    await new Promise(resolve=>setImmediate(resolve));
+  }finally{dom.window.close();}
+});
+
+test('dashboard anual reúne os cards e conta cada ciclo sem considerar a cor personalizada',async()=>{
+  const state=structuredClone(base);state.anoAtual=2024;state.ferias={};state.funcionarios=state.funcionarios.slice(0,3);state.funcionarios.forEach(f=>f.dataInicio='2023-01-01');state.funcionarios[1].dataFim='2024-06-01';state.funcionarios[2].dataInicio='2025-01-01';
+  const {dom,window:w,document:d,execute}=await setup(state);
+  try{
+    execute(`escalaAtual={
+      '2024-01-02':{funcionario:funcionarios[0],tipo:'semana'},
+      '2024-01-06':{funcionario:funcionarios[0],tipo:'fimSemana'},
+      '2024-01-25':{funcionario:funcionarios[1],tipo:'feriado'},
+      '2024-12-25':{funcionario:funcionarios[0],tipo:'fimDeAno'},
+      '2024-12-26':{funcionario:null,tipo:'fimDeAno'},
+      '2025-01-02':{funcionario:funcionarios[0],tipo:'semana'}
+    };coresDias={'2024-01-02':'outros'};`);
+    w.mostrarTela('dashboard');
+    assert.equal(d.getElementById('escalaScreen').classList.contains('screen-hidden'),true);
+    assert.equal(d.getElementById('dashboardScreen').classList.contains('screen-hidden'),false);
+    assert.ok(d.querySelector('#dashboardScreen .metrics'));assert.equal(d.querySelector('#escalaScreen .metrics'),null);
+    assert.equal(d.getElementById('metricDays').textContent,'366');assert.equal(d.getElementById('metricTeam').textContent,'2');
+    assert.equal(d.getElementById('metricAverage').textContent,'2');assert.equal(d.getElementById('metricShifts').textContent,'4');
+    assert.equal(d.querySelectorAll('#dashboardRows tr').length,3);
+    const cells=[...d.querySelector('#dashboardRows tr[data-registro="001"]').cells].map(cell=>cell.textContent);
+    assert.deepEqual(cells.slice(2),['1','1','0','1','3','75%']);
+    assert.match(d.getElementById('dashboardNote').textContent,/362 dia/);
+    w.proximoAno();await new Promise(resolve=>setImmediate(resolve));assert.equal(d.getElementById('dashboardYear').textContent,'2025');
+    w.mostrarTela('escala');assert.ok(d.getElementById('dashboardScreen').classList.contains('screen-hidden'));assert.ok(!d.getElementById('escalaScreen').classList.contains('screen-hidden'));
+  }finally{dom.window.close();}
+});
+
+test('dashboard sem funcionários mostra totais zerados sem divisão inválida',async()=>{
+  const state=structuredClone(base);state.funcionarios=[];state.ferias={};
+  const {dom,window:w,document:d}=await setup(state);
+  try{
+    w.mostrarTela('dashboard');assert.equal(d.getElementById('metricDays').textContent,'365');assert.equal(d.getElementById('metricTeam').textContent,'0');
+    assert.equal(d.getElementById('metricAverage').textContent,'0');assert.equal(d.getElementById('metricShifts').textContent,'0');
+    assert.match(d.getElementById('dashboardRows').textContent,/Cadastre funcionários/);assert.ok(!d.getElementById('dashboardScreen').textContent.includes('NaN'));
   }finally{dom.window.close();}
 });
 

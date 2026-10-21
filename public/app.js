@@ -716,11 +716,13 @@ function showAssignModal(dataStr) {
 }
 
 function toggleFeriado(dataStr) {
+    if(window.persistencia?.canEdit===false){window.solicitarEdicao?.();return;}
     if (feriados[dataStr]) {
         delete feriados[dataStr];
     } else {
         feriados[dataStr] = "Feriado";
     }
+    delete coresDias[dataStr];
     atualizarListaFeriados();
     gerarEscala();
     atualizarCalendario();
@@ -778,26 +780,10 @@ function atualizarCalendario() {
         diaDiv.dataset.cor=cor;
         diaDiv.dataset.ciclo=isFimAno(dataStr)?'fimDeAno':feriados[dataStr]?'feriado':([0,6].includes(data.getDay())?'fimSemana':'semana');
         
-        let conteudo = `<div class="font-bold text-sm mb-1">${dia}</div>`;
-        
-        if (isFimAno(dataStr) && escalaFimAno[dataStr]) {
-            conteudo = `<div class="font-bold text-sm mb-1">${dia}</div>`;
-            conteudo += `<div class="text-xs font-semibold">
-                            <span class="sm:hidden fiscal-name-mobile">${escapeHTML(escalaFimAno[dataStr].funcionario.nome.split(' ')[0])}</span>
-                            <span class="hidden sm:inline">${escapeHTML(escalaFimAno[dataStr].funcionario.nome)}</span>
-                         </div>`;
-            conteudo += `<div class="text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(escalaFimAno[dataStr].funcionario.registro)}</div>`; 
-        } else if (funcionario) {
-            const primeiroNome = funcionario.nome.split(' ')[0];            if (estaEmFerias(funcionario, dataStr)) {
-                conteudo += `<div class="text-xs text-gray-500 font-semibold">${escapeHTML(primeiroNome)} (FÉRIAS)</div>`;
-            } else {
-                conteudo += `<div class="text-xs font-semibold">
-                             <span class="sm:hidden fiscal-name-mobile">${escapeHTML(primeiroNome)}</span>
-                                <span class="hidden sm:inline">${escapeHTML(funcionario.nome)}</span>
-                             </div>`;
-                conteudo += `<div class="text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(funcionario.registro)}</div>`;
-            }
-        }
+        let conteudo = `<button type="button" class="day-toggle" aria-label="${feriados[dataStr]?'Desmarcar':'Marcar'} feriado em ${formatarData(dataStr)}">${dia}</button>`;
+        const nome=funcionario ? funcionario.nome+(estaEmFerias(funcionario,dataStr)?' (FÉRIAS)':'') : 'Sem responsável';
+        conteudo += `<button type="button" class="day-employee font-semibold" aria-label="Editar plantão de ${formatarData(dataStr)}: ${escapeHTML(nome)}">${escapeHTML(nome)}</button>`;
+        if(funcionario)conteudo+=`<div class="text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(funcionario.registro)}</div>`;
         
         if (feriados[dataStr]) {
             conteudo += `<div class="text-xs text-red-600 font-bold hidden sm:block">${escapeHTML(feriados[dataStr])}</div>`;
@@ -808,7 +794,6 @@ function atualizarCalendario() {
         }
 
 
-        if (!funcionario) conteudo += '<span class="unassigned">Sem responsável</span>';
         if (dataStr === formatarDataISO(new Date())) diaDiv.classList.add('today');
         diaDiv.innerHTML = conteudo;
         
@@ -816,18 +801,10 @@ function atualizarCalendario() {
         diaDiv.addEventListener('dragover', handleDragOver);
         diaDiv.addEventListener('drop', handleDrop);
 
-        diaDiv.setAttribute('tabindex', '0');
-        diaDiv.setAttribute('role', 'button');
+        diaDiv.setAttribute('role', 'group');
         diaDiv.setAttribute('aria-label', `${formatarData(dataStr)}: ${funcionario?.nome || 'Sem responsável'}`);
-        diaDiv.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); diaDiv.click(); } });
-        diaDiv.addEventListener('click', () => {
-            if (window.abrirDia) { window.abrirDia(dataStr); return; } 
-            if (isFimAno(dataStr)) {
-                showAssignModal(dataStr);
-            } else {
-                toggleFeriado(dataStr);
-            }
-        });
+        diaDiv.querySelector('.day-employee').addEventListener('click',event=>{event.stopPropagation();window.abrirDia?.(dataStr);});
+        diaDiv.addEventListener('click', () => toggleFeriado(dataStr));
         
         calendario.appendChild(diaDiv);
     }
@@ -842,6 +819,7 @@ function atualizarCalendario() {
 let draggedElement = null;
 let draggedItem = null; // Para a lista de funcionáriosfunction handleDragStart(e) {
     const target = e.target.closest('[draggable="true"]');
+    if(!target)return;
     
     // Verifica se é um item da lista ou do calendário
     if (target.dataset.index) { // Item da lista
@@ -850,8 +828,8 @@ let draggedItem = null; // Para a lista de funcionáriosfunction handleDragStar
         e.dataTransfer.setData('text/plain', draggedItem.dataset.index);
     } else if (target.dataset.data) { // Item do calendário
         draggedElement = target;
-        e.dataTransfer.setData('text/plain', e.target.dataset.data);
-        e.target.style.opacity = '0.5';
+        e.dataTransfer.setData('text/plain', target.dataset.data);
+        target.style.opacity = '0.5';
     }
 }
 

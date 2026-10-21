@@ -2,22 +2,19 @@ const originalMostrarTela=mostrarTela;
 mostrarTela=function(tela) {
   originalMostrarTela(tela);
   document.getElementById('documentsScreen').classList.toggle('screen-hidden',tela!=='documentos');
-  if(tela==='documentos') document.getElementById('escalaScreen').classList.add('screen-hidden');
+  if(tela==='documentos' || tela==='dashboard') document.getElementById('escalaScreen').classList.add('screen-hidden');
+  document.getElementById('dashboardScreen').classList.toggle('screen-hidden',tela!=='dashboard');
   document.querySelectorAll('.side-link').forEach(el => el.classList.remove('active'));
-  document.getElementById({escala:'tabEscala',configuracoes:'tabConfiguracoes',documentos:'tabDocumentos'}[tela]).classList.add('active');
-  const titles={escala:['Escala de plantões','Uma visão clara de quem está à frente, todos os dias.'],configuracoes:['Equipe e regras','Pessoas, períodos e critérios para uma escala bem organizada.'],documentos:['Documentos e backups','Exporte a escala, proteja seus dados e consulte versões anteriores.']};
+  document.getElementById({escala:'tabEscala',configuracoes:'tabConfiguracoes',documentos:'tabDocumentos',dashboard:'tabDashboard'}[tela]).classList.add('active');
+  const titles={escala:['Escala de plantões','Clique no dia para marcar feriado; no nome, para editar o plantão.'],configuracoes:['Equipe e regras','Pessoas, períodos e critérios para uma escala bem organizada.'],documentos:['Documentos e backups','Exporte a escala, proteja seus dados e consulte versões anteriores.'],dashboard:['Dashboard','Acompanhe a distribuição anual de plantões por funcionário e por ciclo.']};
   document.getElementById('pageTitle').textContent=titles[tela][0]; document.getElementById('pageDescription').textContent=titles[tela][1];
-  document.querySelector('.metrics').hidden=tela!=='escala';
+  if(tela==='dashboard')atualizarDashboard();
   if(tela==='documentos') carregarHistorico();
 };
 window.atualizarResumo=function() {
   const start=`${anoAtual}-${String(mesAtualIndex+1).padStart(2,'0')}-01`, end=formatarDataISO(new Date(anoAtual,mesAtualIndex+1,0));
   const shifts=Object.entries(escalaAtual).filter(([day]) => day>=start && day<=end);
-  const filled=shifts.filter(([,shift]) => shift.funcionario).length, total=new Date(anoAtual,mesAtualIndex+1,0).getDate();
-  document.getElementById('metricTeam').textContent=funcionarios.filter(f => (f.dataInicio || '1900-01-01')<=end && (!f.dataFim || f.dataFim>start)).length;
-  document.getElementById('metricShifts').innerHTML=`${filled} <small>/ ${total}</small>`;
-  document.getElementById('metricOpen').textContent=total-filled;
-  document.getElementById('metricVacation').textContent=Object.values(ferias).filter(periods => periods.some(p => p.inicio<=end && p.fim>=start)).length;
+  atualizarDashboard();
   let warnings=document.getElementById('calendarWarnings');
   if(!warnings) { warnings=document.createElement('p'); warnings.id='calendarWarnings'; warnings.className='calendar-warning'; warnings.setAttribute('role','status'); document.querySelector('.calendar-hint').after(warnings); }
   const consecutive=shifts.filter(([day,shift]) => { const previous=new Date(day+'T12:00:00'); previous.setDate(previous.getDate()-1); return shift.funcionario && escalaAtual[formatarDataISO(previous)]?.funcionario?.registro===shift.funcionario.registro; });
@@ -28,6 +25,47 @@ window.atualizarResumo=function() {
     const list=document.getElementById(id); if(!list.children.length) { const empty=document.createElement('p'); empty.className='empty-state'; empty.textContent=message; list.append(empty); }
   }
 };
+
+function obterResumoAnual() {
+  const inicio=`${anoAtual}-01-01`,fim=`${anoAtual}-12-31`;
+  const rows=funcionarios.map(funcionario=>({funcionario,semana:0,fimSemana:0,feriado:0,fimDeAno:0,total:0}));
+  const byRecord=new Map(rows.map(row=>[row.funcionario.registro,row]));
+  const totais={semana:0,fimSemana:0,feriado:0,fimDeAno:0,total:0};
+  for(const [day,shift] of Object.entries(escalaAtual)){
+    if(day<inicio || day>fim || !shift.funcionario)continue;
+    const row=byRecord.get(shift.funcionario.registro);if(!row)continue;
+    const tipo=shift.tipo;if(!Object.hasOwn(totais,tipo) || tipo==='total')continue;
+    row[tipo]++;row.total++;totais[tipo]++;totais.total++;
+  }
+  const ativos=funcionarios.filter(f=>(f.dataInicio || '1900-01-01')<=fim && (!f.dataFim || f.dataFim>inicio)).length;
+  return {ano:anoAtual,totalDias:(Date.UTC(anoAtual+1,0,1)-Date.UTC(anoAtual,0,1))/86400000,ativos,media:ativos?totais.total/ativos:0,rows,totais};
+}
+function atualizarDashboard() {
+  const data=obterResumoAnual();
+  document.getElementById('metricDays').textContent=data.totalDias.toLocaleString('pt-BR');
+  document.getElementById('metricTeam').textContent=data.ativos.toLocaleString('pt-BR');
+  document.getElementById('metricAverage').textContent=data.media.toLocaleString('pt-BR',{maximumFractionDigits:1});
+  document.getElementById('metricShifts').textContent=data.totais.total.toLocaleString('pt-BR');
+  document.getElementById('dashboardPeriod').textContent=`Período: Ano ${data.ano}`;
+  document.getElementById('dashboardYear').textContent=data.ano;
+  const body=document.getElementById('dashboardRows');body.replaceChildren();
+  function addRow(values,{total=false}={}){
+    const tr=document.createElement('tr');if(total)tr.className='dashboard-total';
+    for(const value of values){const td=document.createElement('td');td.textContent=value;tr.append(td);}
+    (total?document.getElementById('dashboardTotals'):body).append(tr);return tr;
+  }
+  for(const row of data.rows){
+    const percentage=data.totais.total?row.total/data.totais.total*100:0;
+    const tr=addRow([row.funcionario.nome,row.funcionario.registro,row.semana,row.fimSemana,row.feriado,row.fimDeAno,row.total,`${percentage.toLocaleString('pt-BR',{maximumFractionDigits:1})}%`]);
+    tr.dataset.registro=row.funcionario.registro;
+    const bar=document.createElement('span');bar.className='proportion-bar';bar.setAttribute('aria-hidden','true');
+    const fill=document.createElement('span');fill.style.width=`${percentage}%`;bar.append(fill);tr.lastChild.append(bar);
+  }
+  if(!data.rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.className='dashboard-empty';td.textContent='Cadastre funcionários para acompanhar a distribuição dos plantões.';tr.append(td);body.append(tr);}
+  document.getElementById('dashboardTotals').replaceChildren();
+  if(data.rows.length)addRow(['Total','',data.totais.semana,data.totais.fimSemana,data.totais.feriado,data.totais.fimDeAno,data.totais.total,data.totais.total?'100%':'0%'],{total:true});
+  document.getElementById('dashboardNote').textContent=`${data.totalDias-data.totais.total} dia(s) sem responsável no ano. A proporção considera os plantões atribuídos; cores personalizadas não alteram a contagem dos ciclos.`;
+}
 function irParaHoje() { salvarEstadoAno(anoAtual); anoAtual=new Date().getFullYear(); mesAtualIndex=new Date().getMonth(); carregarEstadoAno(anoAtual); preencherSelects(); gerarEscala(); atualizarCalendario(); atualizarListaFeriados(); atualizarListaFerias(); salvarDados(); }
 async function baixarBackup() { try { await persistencia.flush(); if(persistencia.pendente) throw new Error('Há alterações pendentes. Resolva o salvamento antes de baixar o backup do banco.'); const data=await persistencia.request('/api/backup'); baixarJSON(data,`escala-backup-${formatarDataISO(new Date())}.json`); } catch(error) { showAlert(error.message,'Backup'); } }
 async function carregarHistorico() {

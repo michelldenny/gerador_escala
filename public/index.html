@@ -20,13 +20,13 @@
   <a class="brand" href="/" aria-label="Escala, início"><span class="brand-icon">e<span>·</span></span><span>escala<span class="brand-dot">.</span></span></a>
   <div class="workspace"><span class="workspace-icon"><i class="fas fa-shield-alt"></i></span><div><strong>Defesa Civil</strong><small>Subprefeitura Penha</small></div></div>
   <div class="nav-caption">ESPAÇO DE TRABALHO</div>
-  <nav aria-label="Menu principal"><button id="tabEscala" title="Escala de plantões" aria-label="Escala de plantões" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt" aria-hidden="true"></i><span>Escala de plantões</span></button><button id="tabConfiguracoes" title="Equipe e regras" aria-label="Equipe e regras" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users" aria-hidden="true"></i><span>Equipe e regras</span></button><button id="tabDocumentos" title="Documentos e backups" aria-label="Documentos e backups" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open" aria-hidden="true"></i><span>Documentos e backups</span></button></nav>
+  <nav aria-label="Menu principal"><button id="tabEscala" title="Escala de plantões" aria-label="Escala de plantões" class="side-link active" onclick="mostrarTela('escala')"><i class="far fa-calendar-alt" aria-hidden="true"></i><span>Escala de plantões</span></button><button id="tabConfiguracoes" title="Equipe e regras" aria-label="Equipe e regras" class="side-link" onclick="mostrarTela('configuracoes')"><i class="fas fa-users" aria-hidden="true"></i><span>Equipe e regras</span></button><button id="tabDocumentos" title="Documentos e backups" aria-label="Documentos e backups" class="side-link" onclick="mostrarTela('documentos')"><i class="far fa-folder-open" aria-hidden="true"></i><span>Documentos e backups</span></button><button id="tabDashboard" title="Dashboard" aria-label="Dashboard" class="side-link" onclick="mostrarTela('dashboard')"><i class="fas fa-chart-bar" aria-hidden="true"></i><span>Dashboard</span></button></nav>
   <div class="sidebar-bottom"><span class="local-dot"></span> Banco conectado <small id="accountLabel">Consulta pública</small></div>
 </aside>
 <main class="main-content"><header class="topbar"><div class="topbar-leading"><button id="sidebarToggle" class="sidebar-toggle" type="button" aria-controls="sidebar" aria-expanded="true" aria-label="Recolher menu lateral"><i class="fas fa-bars" aria-hidden="true"></i></button><span>DEFESA CIVIL <span class="breadcrumb">/ Gestão de plantões</span></span></div><div class="account-actions"><span id="saveStatus" role="status" aria-live="polite">Conectando ao banco…</span><button id="editorToggle" class="soft-button" type="button">Liberar edição</button></div></header>
 <div id="connectionError" class="connection-error hidden" role="alert"></div>
 <div class="page-heading"><div><div class="eyebrow">PLANEJAMENTO DA EQUIPE</div><h1 id="pageTitle">Escala de plantões</h1><p id="pageDescription">Uma visão clara de quem está à frente, todos os dias.</p></div><button class="heading-action" onclick="mostrarTela('documentos')"><i class="fas fa-arrow-down"></i> Exportar escala</button></div>
-<section class="metrics" aria-label="Resumo do mês"><article><span class="metric-icon blue"><i class="fas fa-users"></i></span><div><span>Equipe ativa no mês</span><strong id="metricTeam">0</strong></div></article><article><span class="metric-icon teal"><i class="far fa-calendar-check"></i></span><div><span>Plantões preenchidos</span><strong id="metricShifts">0 <small>/ 0</small></strong></div></article><article><span class="metric-icon amber"><i class="far fa-clock"></i></span><div><span>Dias sem responsável</span><strong id="metricOpen">0</strong></div></article><article><span class="metric-icon purple"><i class="fas fa-umbrella-beach"></i></span><div><span>Pessoas em férias no mês</span><strong id="metricVacation">0</strong></div></article></section>
+
 <div id="appContent" inert>
 
         <!-- Painel de Controle -->
@@ -188,7 +188,7 @@
             </div>
 
             
-            <p class="calendar-hint"><span><i class="far fa-hand-pointer"></i> Clique em um dia para editar ou escolher sua cor. Arraste entre dias para trocar plantões.</span><button class="text-action" onclick="irParaHoje()">Ir para hoje</button></p><div class="calendar-viewport" tabindex="0" aria-label="Calendário mensal; deslize para os lados em telas pequenas"><div id="calendario" class="grid grid-cols-7 gap-2"></div></div>
+            <p class="calendar-hint"><span><i class="far fa-hand-pointer"></i> Clique no dia para marcar/desmarcar feriado. Clique no nome para editar. Arraste entre dias para trocar plantões.</span><button class="text-action" onclick="irParaHoje()">Ir para hoje</button></p><div class="calendar-viewport" tabindex="0" aria-label="Calendário mensal; deslize para os lados em telas pequenas"><div id="calendario" class="grid grid-cols-7 gap-2"></div></div>
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-6 legend-shell">
@@ -216,6 +216,18 @@
         </div>
     </section>
 
+<section id="dashboardScreen" class="screen-hidden" aria-label="Dashboard anual">
+<div class="dashboard-toolbar"><span>Visão anual</span><div class="dashboard-year"><button class="soft-button" onclick="anoAnterior()" aria-label="Ano anterior no dashboard"><i class="fas fa-chevron-left" aria-hidden="true"></i></button><strong id="dashboardYear"></strong><button class="soft-button" onclick="proximoAno()" aria-label="Próximo ano no dashboard"><i class="fas fa-chevron-right" aria-hidden="true"></i></button></div></div>
+<section class="metrics" aria-label="Indicadores anuais">
+<article><span class="metric-icon blue"><i class="far fa-calendar" aria-hidden="true"></i></span><div><span>Total de dias</span><strong id="metricDays">0</strong></div></article>
+<article><span class="metric-icon teal"><i class="fas fa-users" aria-hidden="true"></i></span><div><span>Fiscais ativos</span><strong id="metricTeam">0</strong></div></article>
+<article><span class="metric-icon purple"><i class="fas fa-balance-scale" aria-hidden="true"></i></span><div><span>Média por fiscal</span><strong id="metricAverage">0</strong></div></article>
+<article><span class="metric-icon amber"><i class="fas fa-shield-alt" aria-hidden="true"></i></span><div><span>Plantões atribuídos</span><strong id="metricShifts">0</strong></div></article>
+</section>
+<div class="dashboard-table-card"><div class="dashboard-table-heading"><h2>Distribuição por servidor</h2><span id="dashboardPeriod"></span></div>
+<div class="dashboard-table-scroll" tabindex="0" aria-label="Distribuição anual por funcionário; deslize para os lados em telas pequenas"><table class="dashboard-table"><caption class="sr-only">Plantões por fiscal e por ciclo no ano selecionado</caption><thead><tr><th scope="col">Fiscal</th><th scope="col">RF</th><th scope="col">Dias úteis</th><th scope="col">Fins de semana</th><th scope="col">Feriados</th><th scope="col">Fim de ano</th><th scope="col">Total plantões</th><th scope="col">Proporção</th></tr></thead><tbody id="dashboardRows"></tbody><tfoot id="dashboardTotals"></tfoot></table></div></div>
+<p id="dashboardNote" class="dashboard-note"></p><p class="dashboard-note">Fiscais ativos: pessoas com vigência em algum dia do ano selecionado. Média por fiscal: plantões atribuídos divididos por esse total.</p>
+</section>
 </div><footer class="app-footer">Escala · Organização que cuida da equipe.<span>Dados salvos com histórico de versões</span></footer></main></div>
     <!-- Modal de Alerta -->
     <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">

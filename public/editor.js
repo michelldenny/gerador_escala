@@ -32,7 +32,7 @@
   window.atualizarPermissao=refresh;
   window.solicitarEdicao=open;
   toggle.onclick=async()=>{if(!persistencia.canEdit){open();return;}try{await persistencia.bloquear();}catch(e){showAlert(e.message);}};
-  const mutations=['adicionarFuncionario','editarFuncionario','removerFuncionario','confirmarDesligamento','adicionarFerias','editarFerias','removerFerias','adicionarFeriado','removerFeriado','atualizarCiclos','handleFileUpload','handleDrop','handleListDrop','limparTrocasManuais'];
+  const mutations=['adicionarFuncionario','editarFuncionario','removerFuncionario','confirmarDesligamento','adicionarFerias','editarFerias','removerFerias','adicionarFeriado','removerFeriado','toggleFeriado','atualizarCiclos','handleFileUpload','handleDrop','handleListDrop','limparTrocasManuais'];
   for(const name of mutations){const original=window[name];if(typeof original==='function')window[name]=function(...args){if(!persistencia.canEdit){open();return;}return original.apply(this,args);};}
   const openDay=window.abrirDia;
   window.abrirDia=function(day){openDay(day);if(!persistencia.canEdit){document.querySelectorAll('.day-card input,.day-card select,.day-card .solid-button').forEach(el=>el.disabled=true);}};
