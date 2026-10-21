@@ -50,3 +50,21 @@ test('configuração Vercel serve public e encaminha a API para uma função Nod
   const config=JSON.parse(readFileSync(new URL('../vercel.json',import.meta.url),'utf8'));
   assert.equal(config.framework,null);assert.equal(config.outputDirectory,'public');assert.equal(config.rewrites[0].source,'/api/:path*');assert.match(config.rewrites[0].destination,/route=/);
 });
+
+test('hash inválido informa a variável correta e mantém gravações bloqueadas sem expor valores',async t=>{
+  let writes=0;
+  const handler=createVercelHandler({store:{save:async()=>writes++},passwordHash:'senha-privada-de-exemplo'});
+  const server=http.createServer(handler);
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  t.after(()=>new Promise(resolve=>server.close(resolve)));
+  for(const [path,method] of [['session','GET'],['state','PUT']]){
+    const response=await fetch(`http://127.0.0.1:${server.address().port}/api/${path}`,{method});
+    assert.equal(response.status,503);
+    const body=await response.json();
+    assert.equal(body.code,'EDITOR_PASSWORD_HASH_INVALID');
+    assert.match(body.error,/ESCALA_EDITOR_PASSWORD_HASH/);
+    assert.match(body.error,/editor-password\.hash/);
+    assert.ok(!body.error.includes('senha-privada-de-exemplo'));
+  }
+  assert.equal(writes,0);
+});

@@ -17,8 +17,10 @@ export function createVercelHandler({store:providedStore,passwordHash:providedHa
         server=createApplication({store,passwordHash,securityStore:store,hosted:true,publicOrigin:publicOrigin || process.env.PUBLIC_ORIGIN || undefined,clientAddress:clientAddress || (request=>String(request.headers['x-forwarded-for'] || request.socket?.remoteAddress || 'unknown').split(',')[0].trim())});
       }
       return new Promise(resolve=>{res.once('finish',resolve);res.once('close',resolve);server.emit('request',req,res);});
-    } catch {
-      res.statusCode=503;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify({error:'Confira as variáveis de servidor da Vercel: FIREBASE_SERVICE_ACCOUNT_JSON e ESCALA_EDITOR_PASSWORD_HASH. Depois faça um novo deploy.'}));
+    } catch(error) {
+      const invalidPasswordHash=error.code==='EDITOR_PASSWORD_HASH_INVALID';
+      console.error('Falha ao iniciar API:',invalidPasswordHash?error.code:'API_INITIALIZATION_FAILED');
+      res.statusCode=503;res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.end(JSON.stringify({error:invalidPasswordHash?error.message:'Confira as variáveis de servidor da Vercel: FIREBASE_SERVICE_ACCOUNT_JSON e ESCALA_EDITOR_PASSWORD_HASH. Depois faça um novo deploy.',code:invalidPasswordHash?error.code:'API_INITIALIZATION_FAILED'}));
     }
   };
 }

@@ -37,6 +37,8 @@ Essa variável é de servidor. Não use prefixos `NEXT_PUBLIC_` ou `VITE_`, não
 
 Use o hash, não o conteúdo do arquivo JSON e não a senha em texto puro. A senha continua sendo digitada somente por quem deseja liberar a edição. Alterar o hash e fazer novo deploy invalida as sessões anteriores.
 
+Se aparecer `EDITOR_PASSWORD_HASH_INVALID`, a variável da senha foi preenchida em formato inválido. O valor correto tem 161 caracteres: 32 antes dos dois-pontos e 128 depois. Copie somente a linha do arquivo `.hash`, sem aspas, sem `{ }` e sem o nome `passwordHash`. Salve a variável e faça Redeploy. Esse erro ocorre antes da conexão com o Firebase; ele não indica, por si só, que a credencial do banco está errada.
+
 ### PUBLIC_ORIGIN (opcional)
 
 Na Vercel, a origem HTTPS é detectada a partir do domínio atendido pela plataforma, incluindo domínios de prévia. Se definir essa variável, use exatamente o endereço público permitido, por exemplo `https://gerador-escala-irqp.vercel.app`, sem barra final. Uma origem antiga do Firebase Hosting impedirá as gravações por outro domínio.

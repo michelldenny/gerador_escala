@@ -7,7 +7,7 @@ export async function hashPassword(password) {
   return `${salt}:${(await scrypt(password,salt,64)).toString('hex')}`;
 }
 export function editorAccess({passwordHash,now=Date.now,persistence}={}) {
-  if(passwordHash && !/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(passwordHash)) throw new Error('Hash da senha de edição inválido.');
+  if(passwordHash && !/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(passwordHash)) throw Object.assign(new Error('ESCALA_EDITOR_PASSWORD_HASH está inválida. Execute Definir Senha.cmd no computador e cole somente a linha inteira do arquivo data/editor-password.hash nessa variável da Vercel. Depois faça Redeploy.'),{code:'EDITOR_PASSWORD_HASH_INVALID'});
   const sessions=new Map(), attempts=new Map();
   const version=createHash('sha256').update(passwordHash || '').digest('hex');
   const sessionId=req=>{const value=cookie(req);return /^[a-f0-9]{64}$/.test(value || '') ? createHash('sha256').update(value).digest('hex') : null;};
