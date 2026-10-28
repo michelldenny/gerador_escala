@@ -361,3 +361,38 @@ test('importação XML percorre confirmação, validação e gravação sem cham
     assert.equal(imported,undefined); assert.match(w.document.getElementById('alertModalMessage').textContent,/Os dados anteriores foram preservados/);
   } finally {dom.window.close();}
 });
+
+test('configuração dos três ciclos preserva os primeiros plantões após corrigir consecutivos',async()=>{
+  for(const year of [2026,2027,2028]) {
+    const state=structuredClone(base);state.anoAtual=year;state.ferias={};
+    state.feriados={[`${year}-01-06`]:'Teste'};
+    state.ciclos={diaSemana:0,fimSemana:3,feriado:2};
+    const {dom,execute,document:d,window:w}=await setup(state);
+    try {
+      for(const index of [0,2,4,1]) {
+        d.getElementById('cicloDiaSemanaInicio').value=index;
+        d.getElementById('cicloFimSemanaInicio').value=(index+3)%5;
+        d.getElementById('cicloFeriadosInicio').value=(index+2)%5;
+        execute('atualizarCiclos()');
+        for(const tipo of ['semana','fimSemana','feriado']) {
+          assert.equal(execute(`Object.values(escalaAtual).find(s=>s.tipo==='${tipo}').funcionario.registro`),state.funcionarios[tipo==='semana'?index:tipo==='fimSemana'?(index+3)%5:(index+2)%5].registro,`${year} ${tipo} início ${index}`);
+        }
+        assert.equal(w.saved.ciclos.diaSemana,index);
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+    } finally {dom.window.close();}
+  }
+});
+
+
+test('reabrir prioriza os ciclos salvos para o ano atual',async()=>{
+  const state=structuredClone(base);state.ferias={};
+  state.ciclosPorAno[2026]={diaSemana:4,fimSemana:2,feriado:1};
+  const {dom,document:d}=await setup(state);
+  try {
+    assert.equal(d.getElementById('cicloDiaSemanaInicio').value,'4');
+    assert.equal(d.getElementById('cicloFimSemanaInicio').value,'2');
+    assert.equal(d.getElementById('cicloFeriadosInicio').value,'1');
+    await new Promise(resolve=>setTimeout(resolve,0));
+  } finally {dom.window.close();}
+});

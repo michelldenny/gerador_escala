@@ -203,6 +203,16 @@ function gerarEscala() {
 function validarPlantõesConsecutivos() {
     const datas = Object.keys(escalaAtual).sort();
     const prioridade = { semana: 3, feriado: 2, fimSemana: 1, fimDeAno: 4 };
+    // O primeiro plantão disponível de cada fila representa a escolha nas configurações.
+    const inicios = new Set();
+    const ciclosVistos = new Set();
+    for (const data of datas) {
+        const escala = escalaAtual[data];
+        if (escala.funcionario && !ciclosVistos.has(escala.tipo)) {
+            ciclosVistos.add(escala.tipo);
+            inicios.add(data);
+        }
+    }
 
     const conflitoNoIndice = indice => {
         if (indice < 1 || indice >= datas.length) return false;
@@ -214,9 +224,10 @@ function validarPlantõesConsecutivos() {
     const trocaValida = (indiceA, indiceB) => {
         // Explicit assignments must survive recalculation and reopening the application.
         const fixado = day => Object.hasOwn(trocasManuais, day) || Object.hasOwn(escalaFimAno, day);
-        if (fixado(datas[indiceA]) || fixado(datas[indiceB])) return false;
+        if (fixado(datas[indiceA]) || fixado(datas[indiceB]) || inicios.has(datas[indiceA]) || inicios.has(datas[indiceB])) return false;
         const escalaA = escalaAtual[datas[indiceA]];
         const escalaB = escalaAtual[datas[indiceB]];
+        if (escalaA?.tipo !== escalaB?.tipo) return false;
         // Holiday order is a queue. Conflict repair must not reorder or borrow its assignments.
         if(escalaA?.tipo==='feriado' || escalaB?.tipo==='feriado')return false;
         const funcionarioA = escalaA?.funcionario;
@@ -328,4 +339,3 @@ function obterCorAutomatica(day) {
     if(feriados[day])return 'feriado';
     return [0,6].includes(new Date(day+'T12:00:00').getDay())?'fimSemana':'semana';
 }
-

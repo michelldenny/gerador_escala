@@ -1,9 +1,0 @@
-:root{--font-body:'Inter','Segoe UI',system-ui,sans-serif;--font-heading:'Outfit','Segoe UI',system-ui,sans-serif}
-body,.font-sans{font-family:var(--font-body)}
-button,input,select,textarea{font-family:inherit}
-h1,h2,h3,h4,h5,h6,.font-heading,th{font-family:var(--font-heading)}
-#calendario .day-toggle{font-family:var(--font-body);font-weight:700}
-#calendario .day-employee{font-family:var(--font-body);font-weight:600}
-/* Keep Inter for RF, using equal-width digits for aligned registration numbers. */
-#calendario .day-rf.font-mono{font-family:var(--font-body);font-weight:500;font-variant-numeric:tabular-nums}
-#calendario .calendar-weekday{font-family:var(--font-heading);font-weight:700}
