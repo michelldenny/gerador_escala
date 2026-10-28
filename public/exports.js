@@ -55,7 +55,7 @@ function obterDadosMes(mes) {
                     dia: dia.toString().padStart(2, '0'),
                     diaSemana: diasSemana[data.getDay()],
                     nome: escala.funcionario.nome,
-                    registro: escala.funcionario.registro,
+                    registro: formatarRF(escala.funcionario.registro),
                     telefone: escala.funcionario.telefone
                 });
             }
