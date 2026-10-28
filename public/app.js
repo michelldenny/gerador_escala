@@ -158,9 +158,9 @@ function carregarDados() {
         // Recupera períodos de versões anteriores sem deixar um mapa anual vazio ocultá-los.
         ferias = combinarFerias(salvo.ferias || {}, feriasPorAno[anoAtual] || {});
         feriasPorAno[anoAtual] = JSON.parse(JSON.stringify(ferias));
-        indiceDiaSemana = salvo.ciclos?.diaSemana ?? 0;
-        indiceFinalSemana = salvo.ciclos?.fimSemana ?? 0;
-        indiceFeriado = salvo.ciclos?.feriado ?? 0;
+        indiceDiaSemana = ciclosPorAno[anoAtual]?.diaSemana ?? salvo.ciclos?.diaSemana ?? 0;
+        indiceFinalSemana = ciclosPorAno[anoAtual]?.fimSemana ?? salvo.ciclos?.fimSemana ?? 0;
+        indiceFeriado = ciclosPorAno[anoAtual]?.feriado ?? salvo.ciclos?.feriado ?? 0;
         if (!ciclosPorAno[anoAtual]) {
             ciclosPorAno[anoAtual] = { diaSemana: indiceDiaSemana, fimSemana: indiceFinalSemana, feriado: indiceFeriado };
         }
@@ -1082,6 +1082,3 @@ function formatarDataExterna(data) {
 
 
 // === IMPORTAÇÃO / EXPORTAÇÃO XML ===
-
-
-
