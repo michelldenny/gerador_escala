@@ -40,3 +40,15 @@
 @media(max-width:850px){.employee-card .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.management-form{grid-template-columns:repeat(2,minmax(0,1fr))}.holiday-form .management-form-actions{grid-column:1/-1}.management-pane .list-heading{padding:16px}.management-table td,.management-table th{padding:13px 15px}}
 @media(max-width:520px){.employee-card .form-grid,.management-form{grid-template-columns:minmax(0,1fr)}.employee-card .form-grid .span-2{grid-column:auto}.management-pane .list-heading{align-items:flex-start;flex-direction:column;gap:6px}.management-form-actions button{flex:1}.management-form-actions{grid-column:1}.management-pane .list-heading>span{text-align:left}.management-table .table-name{min-width:175px}}
 @media print{.management-table{min-width:0}.management-table-scroll{overflow:visible}.table-actions{display:none}}
+
+/* Shared appearance for the three configuration save/add actions. */
+#editorStack .editor-card .config-add-button {
+    display:inline-flex;align-items:center;justify-content:center;
+    width:170px!important;max-width:100%;min-height:38px;
+    padding:10px 16px!important;margin:0!important;flex:0 1 170px;
+    justify-self:start;align-self:end;border:0;border-radius:7px!important;
+    background:var(--accent)!important;color:#fff!important;
+    font-size:11px;font-weight:600;line-height:18px;white-space:nowrap;
+}
+#editorStack .editor-card .config-add-button:hover {filter:brightness(.94)}
+#editorStack .editor-card .config-add-button:disabled {filter:none}
