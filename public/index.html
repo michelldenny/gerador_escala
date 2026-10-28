@@ -58,7 +58,7 @@
                         <div><label class="field-label" for="registroFuncionario">Registro funcional</label><input type="text" id="registroFuncionario" placeholder="000.000-0" onblur="this.value=formatarRF(this.value)" class="w-full p-2 border rounded text-sm"></div>
                         <div><label class="field-label" for="telefoneFuncionario">Telefone</label><input type="text" id="telefoneFuncionario" placeholder="Telefone" class="w-full p-2 border rounded text-sm"></div>
                         <div class="span-2"><label class="field-label" for="inicioFuncionario">Escalar a partir de</label><input type="date" id="inicioFuncionario" class="w-full p-2 border rounded text-sm"></div>
-                        <button id="salvarFuncionarioBtn" onclick="adicionarFuncionario()" class="bg-blue-600 text-white p-2 hover:bg-blue-700 text-sm primary-action span-2">
+                        <button id="salvarFuncionarioBtn" onclick="adicionarFuncionario()" class="config-add-button span-2">
                             <i class="fas fa-plus mr-1"></i><span>Adicionar funcionário</span>
                         </button>
                         <button id="cancelarEdicaoFuncionarioBtn" onclick="cancelarEdicaoFuncionario()" class="hidden bg-gray-100 text-gray-700 p-2 text-sm span-2">Cancelar edição</button>
@@ -108,7 +108,7 @@
                         <div><label class="field-label" for="inicioFerias">Início</label><input type="date" id="inicioFerias" onchange="sincronizarFimFerias()" class="p-2 border rounded text-sm w-full"></div>
                         <div><label class="field-label" for="fimFerias">Fim</label><input type="date" id="fimFerias" class="p-2 border rounded text-sm w-full"></div>
                     <div class="management-form-actions">
-                    <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 text-sm">
+                    <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="config-add-button">
                         <i class="fas fa-plus mr-1"></i><span>Adicionar férias</span>
                     </button>
                     <button id="cancelarEdicaoFeriasBtn" onclick="cancelarEdicaoFerias()" class="hidden w-full bg-gray-100 text-gray-700 p-2 text-sm mt-2">Cancelar edição</button>
@@ -129,7 +129,7 @@
                     <div><label class="field-label" for="dataFeriado">Data</label><input type="date" id="dataFeriado" class="w-full p-2 border rounded mb-2"></div>
                     <div><label class="field-label" for="nomeFeriado">Nome do feriado</label><input type="text" id="nomeFeriado" placeholder="Nome do feriado" class="w-full p-2 border rounded mb-2 text-sm"></div>
                     <div class="management-form-actions">
-                        <button onclick="adicionarFeriado()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600 text-sm">
+                        <button onclick="adicionarFeriado()" class="config-add-button">
                         <i class="fas fa-plus mr-1"></i>Adicionar Feriado
                     </button>
                     </div></div>
