@@ -53,7 +53,7 @@ function atualizarDashboard() {
   }
   for(const row of data.rows){
     const percentage=data.totais.total?row.total/data.totais.total*100:0;
-    const tr=addRow([row.funcionario.nome,row.funcionario.registro,row.semana,row.fimSemana,row.feriado,row.fimDeAno,row.total,`${percentage.toLocaleString('pt-BR',{maximumFractionDigits:1})}%`]);
+    const tr=addRow([row.funcionario.nome,formatarRF(row.funcionario.registro),row.semana,row.fimSemana,row.feriado,row.fimDeAno,row.total,`${percentage.toLocaleString('pt-BR',{maximumFractionDigits:1})}%`]);
     tr.dataset.registro=row.funcionario.registro;
     const bar=document.createElement('span');bar.className='proportion-bar';bar.setAttribute('aria-hidden','true');
     const fill=document.createElement('span');fill.style.width=`${percentage}%`;bar.append(fill);tr.lastChild.append(bar);
@@ -87,7 +87,7 @@ window.abrirDia=function(day) {
   const label=document.createElement('label'); label.textContent='Responsável pelo plantão'; label.htmlFor='dayEmployee';
   const select=document.createElement('select'); select.id='dayEmployee';
   const empty=document.createElement('option'); empty.value=''; empty.textContent='Sem responsável'; select.append(empty);
-  funcionarios.filter(f => funcionarioAtivoNaData(f,day) && !estaEmFerias(f,day)).forEach(f => { const option=document.createElement('option'); option.value=f.registro; option.textContent=`${f.nome} · RF ${f.registro}`; select.append(option); });
+  funcionarios.filter(f => funcionarioAtivoNaData(f,day) && !estaEmFerias(f,day)).forEach(f => { const option=document.createElement('option'); option.value=f.registro; option.textContent=`${f.nome} · RF ${formatarRF(f.registro)}`; select.append(option); });
   select.value=shift?.funcionario?.registro || '';
   const note=document.createElement('p'); note.className='hint'; note.textContent='A lista inclui pessoas ativas e disponíveis nesta data. Alterações manuais ficam registradas na escala.';
   const holidayLabel=document.createElement('label'); holidayLabel.className='holiday-checkbox'; const checkbox=document.createElement('input'); checkbox.type='checkbox'; checkbox.checked=Boolean(feriados[day]); holidayLabel.append(checkbox,document.createTextNode(' Considerar este dia um feriado'));

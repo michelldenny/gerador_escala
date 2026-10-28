@@ -156,8 +156,8 @@ function carregarDados() {
         anoAtual = Number.isInteger(salvo.anoAtual) ? salvo.anoAtual : anoAtual;
         mesAtualIndex = Number.isInteger(salvo.mesAtualIndex) ? salvo.mesAtualIndex : new Date().getMonth();
         // Recupera períodos de versões anteriores sem deixar um mapa anual vazio ocultá-los.
-        ferias = combinarFerias(salvo.ferias || {}, feriasPorAno[anoAtual] || {});
-        feriasPorAno[anoAtual] = JSON.parse(JSON.stringify(ferias));
+        ferias = Object.values(feriasPorAno).reduce((total, mapa) => combinarFerias(total, mapa), salvo.ferias || {});
+        agruparFeriasPorInicio();
         indiceDiaSemana = ciclosPorAno[anoAtual]?.diaSemana ?? salvo.ciclos?.diaSemana ?? 0;
         indiceFinalSemana = ciclosPorAno[anoAtual]?.fimSemana ?? salvo.ciclos?.fimSemana ?? 0;
         indiceFeriado = ciclosPorAno[anoAtual]?.feriado ?? salvo.ciclos?.feriado ?? 0;
@@ -182,7 +182,7 @@ function combinarFerias(base, anual) {
 }
 
 function salvarDados() {
-    feriasPorAno[anoAtual] = JSON.parse(JSON.stringify(ferias));
+    agruparFeriasPorInicio();
     feriadosPorAno[anoAtual] = { ...feriados };
     trocasPorAno[anoAtual] = { ...trocasManuais };
     fimAnoPorAno[anoAtual] = { ...escalaFimAno };
@@ -254,7 +254,7 @@ function salvarEstadoAno(ano) {
     escalasPorAno[ano] = { ...escalaAtual };
     trocasPorAno[ano] = { ...trocasManuais };
     fimAnoPorAno[ano] = { ...escalaFimAno };
-    feriasPorAno[ano] = JSON.parse(JSON.stringify(ferias)); // Agora usa 'registro'
+    agruparFeriasPorInicio(); // Agora usa 'registro'
     feriadosPorAno[ano] = { ...feriados };
     ciclosPorAno[ano] = {
         diaSemana: parseInt(document.getElementById('cicloDiaSemanaInicio').value) || 0,
@@ -267,7 +267,7 @@ function carregarEstadoAno(ano) {
     escalaAtual = escalasPorAno[ano] || {};
     trocasManuais = trocasPorAno[ano] || {};
     escalaFimAno = fimAnoPorAno[ano] || {};
-    ferias = feriasPorAno[ano] || {}; // Agora usa 'registro'
+    // Férias permanecem disponíveis entre anos, inclusive períodos que cruzam dezembro. // Agora usa 'registro'
     feriados = feriadosPorAno[ano] || carregarFeriados(ano);
     const ciclos = ciclosPorAno[ano] || { diaSemana: 0, fimSemana: 0, feriado: 0 };
     indiceDiaSemana = ciclos.diaSemana;
@@ -282,6 +282,7 @@ function carregarEstadoAno(ano) {
 function atualizarRotuloAnoCiclos() {
     const rotulo = document.getElementById('cicloAnoLabel');
     if (rotulo) rotulo.textContent = `Configuração exclusiva para ${anoAtual}`;
+    preencherAnosConfiguracao();
 }
 
 // === GESTÃO DE FERIADOS ===
@@ -369,7 +370,7 @@ function adicionarFuncionario() {
         return;
     }
 
-    const funcionarioExistente = funcionarios.find((f, index) => f.registro === registro && index !== funcionarioEditandoIndex);
+    const funcionarioExistente = funcionarios.find((f, index) => formatarRF(f.registro) === formatarRF(registro) && index !== funcionarioEditandoIndex);
     if (funcionarioExistente) {
         showAlert('Já existe um funcionário com este número de registro.');
         return;
@@ -414,7 +415,7 @@ function editarFuncionario(index) {
     funcionarioEditandoIndex = index;
     abrirGrupo('.employee-card', 'nomeFuncionario');
     document.getElementById('nomeFuncionario').value = func.nome;
-    document.getElementById('registroFuncionario').value = func.registro;
+    document.getElementById('registroFuncionario').value = formatarRF(func.registro);
     document.getElementById('telefoneFuncionario').value = func.telefone;
     document.getElementById('inicioFuncionario').value = func.dataInicio || '1900-01-01';
     const botao = document.getElementById('salvarFuncionarioBtn');
@@ -498,7 +499,7 @@ function atualizarListaFuncionarios() {
         const status = func.dataFim && hoje >= func.dataFim ? 'inactive' : (func.dataInicio && hoje < func.dataInicio ? 'scheduled' : 'active');
         const statusTexto = status === 'inactive' ? 'Inativo' : (status === 'scheduled' ? 'Entrada agendada' : 'Ativo');
         const periodo = `${func.dataInicio && func.dataInicio !== '1900-01-01' ? 'A partir de ' + formatarData(func.dataInicio) : 'Histórico'}${func.dataFim ? ' · até ' + formatarData(func.dataFim) : ''}`;
-        celulaTabela(item,func.nome,'table-name');celulaTabela(item,func.registro,'table-record');celulaTabela(item,func.telefone || '—','table-phone');
+        celulaTabela(item,func.nome,'table-name');celulaTabela(item,formatarRF(func.registro),'table-record');celulaTabela(item,func.telefone || '—','table-phone');
         const vigencia=celulaTabela(item,periodo,'table-validity');if(func.dataFim)vigencia.title=`Fora da escala a partir de ${formatarData(func.dataFim)}`;
         celulaTabela(item,'').append(seloTabela(statusTexto,status));
         celulaTabela(item,'','table-actions').append(acaoTabela(`Editar funcionário ${func.nome}`,'pen',()=>editarFuncionario(index)),acaoTabela(`Definir desligamento de ${func.nome}`,'user-minus',()=>removerFuncionario(index)));
@@ -668,13 +669,16 @@ function cancelarEdicaoFerias(limpar = true) {
 }
 
 function atualizarListaFerias() {
+    preencherAnosConfiguracao();
+    const anoFiltro = document.getElementById('anoFerias').value;
     const lista = document.getElementById('listaFerias');
     lista.innerHTML = '';    for (const [registro, periodos] of Object.entries(ferias)) {
         const funcionario = funcionarios.find(f => f.registro === registro);
         if (funcionario) {
             periodos.forEach((periodo, index) => {
+                if (periodo.inicio.slice(0,4) !== anoFiltro) return;
                 const item=document.createElement('tr');item.dataset.registro=registro;item.dataset.periodo=index;
-                celulaTabela(item,funcionario.nome,'table-name');celulaTabela(item,registro,'table-record');
+                celulaTabela(item,funcionario.nome,'table-name');celulaTabela(item,formatarRF(registro),'table-record');
                 celulaTabela(item,formatarData(periodo.inicio),'table-date');celulaTabela(item,formatarData(periodo.fim),'table-date');
                 const dias=Math.round((Date.parse(periodo.fim+'T00:00:00Z')-Date.parse(periodo.inicio+'T00:00:00Z'))/86400000)+1;
                 celulaTabela(item,`${dias} ${dias===1?'dia':'dias'}`);
@@ -685,7 +689,7 @@ function atualizarListaFerias() {
             });
         }
     }
-    const total = Object.values(ferias).reduce((soma, periodos) => soma + periodos.length, 0);
+    const total = lista.children.length;
     document.getElementById('totalFerias').textContent = `${total} ${total === 1 ? 'período' : 'períodos'}`;
     vazioTabela(lista,7,'Nenhum período de férias cadastrado.');
 }
@@ -803,7 +807,7 @@ function atualizarCalendario() {
         let conteudo = `<button type="button" class="day-toggle font-bold" aria-label="${feriados[dataStr]?'Desmarcar':'Marcar'} feriado em ${formatarData(dataStr)}">${dia}</button>`;
         const nome=funcionario ? funcionario.nome+(estaEmFerias(funcionario,dataStr)?' (FÉRIAS)':'') : 'Sem responsável';
         conteudo += `<button type="button" class="day-employee font-semibold" aria-label="Editar plantão de ${formatarData(dataStr)}: ${escapeHTML(nome)}">${escapeHTML(nome)}</button>`;
-        if(funcionario)conteudo+=`<div class="day-rf font-mono font-medium text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(funcionario.registro)}</div>`;
+        if(funcionario)conteudo+=`<div class="day-rf font-mono font-medium text-xs text-gray-600 hidden sm:block">RF ${escapeHTML(formatarRF(funcionario.registro))}</div>`;
         
         if (feriados[dataStr]) {
             conteudo += `<div class="text-xs text-red-600 font-bold hidden sm:block">${escapeHTML(feriados[dataStr])}</div>`;
@@ -1082,3 +1086,43 @@ function formatarDataExterna(data) {
 
 
 // === IMPORTAÇÃO / EXPORTAÇÃO XML ===
+
+function formatarRF(valor) {
+    const texto = String(valor ?? '');
+    if (!/^[\d.\-]+$/.test(texto)) return texto;
+    const numeros = texto.replace(/\D/g, '');
+    if (!numeros || numeros.length > 7) return texto;
+    return numeros.padStart(7,'0').replace(/(\d{3})(\d{3})(\d)/,'$1.$2-$3');
+}
+function agruparFeriasPorInicio() {
+    feriasPorAno = {};
+    for (const [registro, periodos] of Object.entries(ferias)) for (const periodo of periodos) {
+        const ano = periodo.inicio.slice(0,4);
+        ((feriasPorAno[ano] ||= {})[registro] ||= []).push({...periodo});
+    }
+}
+function preencherAnosConfiguracao() {
+    const anos = new Set([anoAtual]);
+    const inicioDigitado=document.getElementById('inicioFerias')?.value;if(inicioDigitado)anos.add(Number(inicioDigitado.slice(0,4)));
+    for(let ano=anoAtual-5;ano<=anoAtual+5;ano++) anos.add(ano);
+    Object.keys(ciclosPorAno).forEach(ano=>anos.add(Number(ano)));
+    Object.values(ferias).flat().forEach(p=>anos.add(Number(p.inicio.slice(0,4))));
+    for(const id of ['anoFerias','anoCiclos']) {
+        const select=document.getElementById(id); if(!select)continue;
+        const escolhido=id==='anoCiclos'?String(anoAtual):(select.value || String(anoAtual));
+        anos.add(Number(escolhido));select.replaceChildren();
+        for(const ano of [...anos].sort((a,b)=>a-b)) { const option=document.createElement('option');option.value=ano;option.textContent=ano;select.append(option); }
+        select.value=escolhido;
+    }
+}
+function selecionarAnoCiclos(valor) {
+    const ano=Number(valor);if(!Number.isInteger(ano)||ano<1900||ano>2200)return;
+    salvarEstadoAno(anoAtual);anoAtual=ano;carregarEstadoAno(ano);
+    gerarEscala();atualizarCalendario();preencherSelectMeses();atualizarListaFeriados();salvarDados();
+}
+function sincronizarFimFerias() {
+    const inicio=document.getElementById('inicioFerias').value;if(!inicio)return;
+    const fim=document.getElementById('fimFerias');
+    if(!fim.value || fim.value.slice(0,7)!==inicio.slice(0,7) || fim.value<inicio)fim.value=inicio;
+    preencherAnosConfiguracao();document.getElementById('anoFerias').value=inicio.slice(0,4);atualizarListaFerias();
+}

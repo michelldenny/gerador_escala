@@ -8,6 +8,7 @@
     if(role)role.textContent=editable?'Edição liberada':'Consulta pública';
     const selectors='#editorStack input,#editorStack select,#editorStack button,#listaFuncionarios button,#listaFerias button,#listaFeriados button,#backupInput,#importXmlInput';
     document.querySelectorAll(selectors).forEach(el=>{
+      if(el.id==='anoCiclos')return;
       if(!editable&&!el.disabled){el.dataset.lockedByRole='true';el.disabled=true;}
       else if(editable&&el.dataset.lockedByRole){el.disabled=false;delete el.dataset.lockedByRole;}
     });

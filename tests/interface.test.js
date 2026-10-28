@@ -311,7 +311,7 @@ test('tabela de férias conta dias inclusivos em ano bissexto e mantém edição
   const {dom,window:w,document:d}=await setup(state);
   try{
     assert.deepEqual([...d.querySelectorAll('.vacation-table th')].map(el=>el.textContent),['Funcionário','RF','Início','Fim','Dias','Situação','Ações']);
-    const row=d.querySelector('#listaFerias tr');assert.equal(row.cells[0].textContent,'Pessoa 1');assert.equal(row.cells[1].textContent,'001');assert.equal(row.cells[4].textContent,'3 dias');
+    d.getElementById('anoFerias').value='2024';w.atualizarListaFerias();const row=d.querySelector('#listaFerias tr');assert.equal(row.cells[0].textContent,'Pessoa 1');assert.equal(row.cells[1].textContent,'000.000-1');assert.equal(row.cells[4].textContent,'3 dias');
     row.querySelector('button').click();assert.equal(d.getElementById('funcionarioFerias').value,'001');assert.equal(d.getElementById('inicioFerias').value,'2024-02-28');
     row.querySelectorAll('button')[1].click();assert.equal(w.saved.ferias['001'],undefined);assert.equal(d.getElementById('totalFerias').textContent,'0 períodos');
     assert.equal(d.querySelector('#listaFerias tr td').colSpan,7);await new Promise(resolve=>setImmediate(resolve));
@@ -395,4 +395,32 @@ test('reabrir prioriza os ciclos salvos para o ano atual',async()=>{
     assert.equal(d.getElementById('cicloFeriadosInicio').value,'1');
     await new Promise(resolve=>setTimeout(resolve,0));
   } finally {dom.window.close();}
+});
+
+test('férias separadas pelo início preservam virada do ano, edição e exclusão',async()=>{
+ const state=structuredClone(base);state.ferias={'001':[{inicio:'2026-12-20',fim:'2027-01-15'},{inicio:'2027-07-01',fim:'2027-07-20'}]};
+ state.feriasPorAno={2025:{'002':[{inicio:'2025-11-01',fim:'2025-11-10'}]}};
+ const {dom,window:w,document:d,execute}=await setup(state);
+ try {
+  assert.equal(d.querySelectorAll('#listaFerias tr[data-registro]').length,1);
+  d.getElementById('anoFerias').value='2027';w.atualizarListaFerias();
+  assert.match(d.getElementById('listaFerias').textContent,/01\/07\/2027/);
+  assert.doesNotMatch(d.getElementById('listaFerias').textContent,/20\/12\/2026/);
+  assert.equal(execute("estaEmFerias(funcionarios[0],'2027-01-10')"),true);
+  d.querySelector('#listaFerias button').click();assert.equal(d.getElementById('inicioFerias').value,'2027-07-01');
+  w.removerFerias('001',1);assert.equal(w.saved.feriasPorAno[2027],undefined);assert.equal(w.saved.feriasPorAno[2025]['002'].length,1);
+  const reopened=await setup(w.saved);try{assert.equal(reopened.execute("ferias['001'].length"),1);}finally{reopened.dom.window.close();}
+ } finally {dom.window.close();}
+});
+test('mês final acompanha início e seletor dos ciclos guarda configurações por ano',async()=>{
+ const {dom,window:w,document:d}=await setup();
+ try {
+  d.getElementById('inicioFerias').value='2027-08-20';w.sincronizarFimFerias();assert.equal(d.getElementById('fimFerias').value,'2027-08-20');
+  d.getElementById('fimFerias').value='2027-08-30';w.sincronizarFimFerias();assert.equal(d.getElementById('fimFerias').value,'2027-08-30');
+  w.selecionarAnoCiclos('2027');d.getElementById('cicloDiaSemanaInicio').value='3';w.atualizarCiclos();
+  w.selecionarAnoCiclos('2026');assert.equal(d.getElementById('cicloDiaSemanaInicio').value,'0');
+  w.selecionarAnoCiclos('2027');assert.equal(d.getElementById('cicloDiaSemanaInicio').value,'3');assert.equal(d.getElementById('anoCiclos').value,'2027');
+  assert.equal(w.formatarRF('1234567'),'123.456-7');assert.equal(w.formatarRF('123.456-7'),'123.456-7');
+  await new Promise(resolve=>setTimeout(resolve,0));
+ } finally {dom.window.close();}
 });
