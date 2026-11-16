@@ -120,10 +120,12 @@ function mostrarGrupoConfig(grupo) {
         elemento.classList.toggle('group-hidden', elemento.dataset.configGroup !== grupo);
     });
     document.querySelectorAll('.config-tab').forEach(botao => botao.classList.remove('active'));
-    const ids = { funcionarios: 'configTabFuncionarios', ciclos: 'configTabCiclos', ferias: 'configTabFerias', feriados: 'configTabFeriados' };
+    const ids = { funcionarios: 'configTabFuncionarios', ciclos: 'configTabCiclos', ferias: 'configTabFerias', mapaFerias: 'configTabMapaFerias', feriados: 'configTabFeriados' };
     document.getElementById(ids[grupo])?.classList.add('active');
-    document.getElementById('overviewLists')?.classList.toggle('group-hidden', grupo === 'ciclos');
     document.querySelector('.management-grid')?.classList.toggle('single-panel', grupo === 'ciclos');
+    document.getElementById('editorStack').classList.toggle('group-hidden', grupo === 'mapaFerias');
+    document.getElementById('overviewLists').classList.toggle('group-hidden', grupo === 'ciclos' || grupo === 'mapaFerias');
+    if (grupo === 'mapaFerias') atualizarMapaFerias();
 }
 
 function abrirGrupo(seletor, focoId) {
@@ -1124,5 +1126,127 @@ function sincronizarFimFerias() {
     const inicio=document.getElementById('inicioFerias').value;if(!inicio)return;
     const fim=document.getElementById('fimFerias');
     if(!fim.value || fim.value.slice(0,7)!==inicio.slice(0,7) || fim.value<inicio)fim.value=inicio;
-    preencherAnosConfiguracao();document.getElementById('anoFerias').value=inicio.slice(0,4);atualizarListaFerias();
+    preencherAnosConfiguracao();
+}
+
+function somarDiasFerias(data, quantidade) {
+    const dia = new Date(data + 'T00:00:00Z');
+    dia.setUTCDate(dia.getUTCDate() + quantidade);
+    return dia.toISOString().slice(0, 10);
+}
+
+function definirDuracaoFerias(dias) {
+    const inicio = document.getElementById('inicioFerias');
+    if (!inicio.value) {
+        showAlert('Escolha a data de início das férias.');
+        return;
+    }
+    document.getElementById('fimFerias').value = somarDiasFerias(inicio.value, dias - 1);
+}
+
+function atualizarMapaFerias() {
+    const seletorMes = document.getElementById('mesMapaFerias');
+    const seletorAno = document.getElementById('anoMapaFerias');
+    if (!seletorMes.options.length) {
+        const nomesDosMeses = new Intl.DateTimeFormat('pt-BR', { month: 'long' });
+        for (let mes = 0; mes < 12; mes++) {
+            seletorMes.add(new Option(nomesDosMeses.format(new Date(2024, mes, 1)), mes));
+        }
+        seletorMes.value = mesAtualIndex;
+    }
+
+    const anoSelecionado = seletorAno.value || String(anoAtual);
+    const anos = new Set([Number(anoSelecionado)]);
+    for (let ano = anoAtual - 5; ano <= anoAtual + 5; ano++) anos.add(ano);
+    for (const periodo of Object.values(ferias).flat()) {
+        const primeiroAno = Number(periodo.inicio.slice(0, 4));
+        const ultimoAno = Number(somarDiasFerias(periodo.fim, 1).slice(0, 4));
+        for (let ano = primeiroAno; ano <= ultimoAno; ano++) anos.add(ano);
+    }
+    seletorAno.replaceChildren(...[...anos].sort((a, b) => a - b).map(ano => new Option(ano, ano)));
+    seletorAno.value = anoSelecionado;
+
+    const ano = Number(anoSelecionado);
+    const mes = Number(seletorMes.value);
+    const dias = Array.from({ length: new Date(ano, mes + 1, 0).getDate() }, (_, i) => new Date(ano, mes, i + 1));
+    const datas = dias.map(formatarDataISO);
+    const totais = dias.map(() => 0);
+    const grade = document.getElementById('gradeMapaFerias');
+    grade.tHead.replaceChildren();
+    grade.tBodies[0].replaceChildren();
+
+    const cabecalho = grade.tHead.insertRow();
+    tituloGradeFerias(cabecalho, 'Fiscal', 'col');
+    const diaDaSemana = new Intl.DateTimeFormat('pt-BR', { weekday: 'short' });
+    dias.forEach((dia, i) => {
+        const titulo = tituloGradeFerias(cabecalho, String(i + 1), 'col');
+        const semana = document.createElement('small');
+        semana.textContent = diaDaSemana.format(dia);
+        titulo.append(semana);
+    });
+
+    for (const fiscal of funcionarios) {
+        const periodos = (ferias[fiscal.registro] || []).map((periodo, indice) => ({
+            ...periodo, indice, retorno: somarDiasFerias(periodo.fim, 1)
+        }));
+        const registros = datas.map(data => {
+            const periodo = periodos.find(item => item.inicio <= data && data <= item.fim);
+            if (periodo) {
+                if (periodo.inicio === data && periodo.fim === data) return { periodo, tipo: 'unico', marca: 'I/F', nome: 'Início e último dia' };
+                if (periodo.inicio === data) return { periodo, tipo: 'inicio', marca: 'I', nome: 'Início das férias' };
+                if (periodo.fim === data) return { periodo, tipo: 'fim', marca: 'F', nome: 'Último dia de férias' };
+                return { periodo, tipo: 'ferias', marca: '•', nome: 'Em férias' };
+            }
+            const anterior = periodos.find(item => item.retorno === data);
+            return anterior && { periodo: anterior, tipo: 'retorno', marca: 'R', nome: 'Retorno das férias' };
+        });
+        if (!registros.some(Boolean) && !datas.some(data => funcionarioAtivoNaData(fiscal, data))) continue;
+
+        const linha = grade.tBodies[0].insertRow();
+        tituloGradeFerias(linha, fiscal.nome, 'row');
+        registros.forEach((registro, i) => {
+            const celula = linha.insertCell();
+            if (!registro) return;
+            const { periodo, tipo, marca, nome } = registro;
+            if (tipo !== 'retorno') totais[i]++;
+            celula.dataset.estado = tipo;
+            const rotulo = `${fiscal.nome} · ${formatarData(datas[i])} · ${nome}`;
+            const botao = document.createElement('button');
+            botao.type = 'button';
+            botao.textContent = marca;
+            botao.title = rotulo;
+            botao.setAttribute('aria-label', `${rotulo}. Editar período de férias`);
+            if (window.persistencia?.canEdit === false) {
+                botao.disabled = true;
+                botao.dataset.lockedByRole = 'true';
+            }
+            botao.onclick = () => {
+                document.getElementById('anoFerias').value = periodo.inicio.slice(0, 4);
+                atualizarListaFerias();
+                editarFerias(fiscal.registro, periodo.indice);
+            };
+            celula.append(botao);
+        });
+    }
+    const resumo = grade.tHead.insertRow();
+    tituloGradeFerias(resumo, 'Total de férias', 'row');
+    totais.forEach(total => {
+        const celula = resumo.insertCell();
+        celula.dataset.ausentes = Math.min(total, 4);
+        celula.textContent = total;
+    });
+    if (!grade.tBodies[0].rows.length) {
+        const vazio = grade.tBodies[0].insertRow().insertCell();
+        vazio.colSpan = dias.length + 1;
+        vazio.className = 'vacation-grid-empty';
+        vazio.textContent = 'Nenhum fiscal com vínculo ou férias neste mês.';
+    }
+}
+
+function tituloGradeFerias(linha, texto, escopo) {
+    const celula = document.createElement('th');
+    celula.scope = escopo;
+    celula.textContent = texto;
+    linha.append(celula);
+    return celula;
 }

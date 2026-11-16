@@ -44,6 +44,7 @@
                 <button id="configTabFuncionarios" class="config-tab active" onclick="mostrarGrupoConfig('funcionarios')"><i class="fas fa-users mr-2"></i>Funcionários</button>
                 <button id="configTabCiclos" class="config-tab" onclick="mostrarGrupoConfig('ciclos')"><i class="fas fa-redo-alt mr-2"></i>Ciclos</button>
                 <button id="configTabFerias" class="config-tab" onclick="mostrarGrupoConfig('ferias')"><i class="fas fa-plane mr-2"></i>Férias</button>
+                <button id="configTabMapaFerias" class="config-tab" onclick="mostrarGrupoConfig('mapaFerias')"><i class="fas fa-calendar-alt mr-2"></i>Mapa de férias</button>
                 <button id="configTabFeriados" class="config-tab" onclick="mostrarGrupoConfig('feriados')"><i class="fas fa-calendar-check mr-2"></i>Feriados</button>
             </nav>
             <div class="management-grid">
@@ -108,6 +109,13 @@
                         <div><label class="field-label" for="inicioFerias">Início</label><input type="date" id="inicioFerias" onchange="sincronizarFimFerias()" class="p-2 border rounded text-sm w-full"></div>
                         <div><label class="field-label" for="fimFerias">Fim</label><input type="date" id="fimFerias" class="p-2 border rounded text-sm w-full"></div>
                     <div class="management-form-actions">
+                    <fieldset class="vacation-duration">
+                        <legend>Duração a partir do início</legend>
+                        <button type="button" onclick="definirDuracaoFerias(10)">10 dias</button>
+                        <button type="button" onclick="definirDuracaoFerias(15)">15 dias</button>
+                        <button type="button" onclick="definirDuracaoFerias(20)">20 dias</button>
+                        <button type="button" onclick="definirDuracaoFerias(30)">30 dias</button>
+                    </fieldset>
                     <button id="salvarFeriasBtn" onclick="adicionarFerias()" class="config-add-button">
                         <i class="fas fa-plus mr-1"></i><span>Adicionar férias</span>
                     </button>
@@ -115,7 +123,7 @@
                     </div>
                     </div>
                     <div class="list-pane management-pane">
-                        <label class="field-label" for="anoFerias">Ano de início das férias</label><select id="anoFerias" class="w-full p-2 border rounded mb-2" onchange="atualizarListaFerias()"></select><div class="list-heading"><strong>Períodos de férias cadastrados</strong><span id="totalFerias" aria-live="polite"></span></div>
+                        <label class="field-label" for="anoFerias">Ano de início das férias</label><select id="anoFerias" data-consulta class="w-full p-2 border rounded mb-2" onchange="atualizarListaFerias()"></select><div class="list-heading"><strong>Períodos de férias cadastrados</strong><span id="totalFerias" aria-live="polite"></span></div>
                         <div class="management-table-scroll" tabindex="0" aria-label="Férias cadastradas; deslize para os lados em telas pequenas"><table class="management-table vacation-table"><caption class="sr-only">Funcionário, RF, início, fim, duração, situação e ações dos períodos de férias</caption><thead><tr><th scope="col">Funcionário</th><th scope="col">RF</th><th scope="col">Início</th><th scope="col">Fim</th><th scope="col">Dias</th><th scope="col">Situação</th><th scope="col">Ações</th></tr></thead><tbody id="listaFerias"></tbody></table></div>
                     </div>
                 </div>
@@ -139,6 +147,21 @@
                     </div>
                 </div>
                 </div>
+                <section class="management-pane list-pane vacation-map group-hidden" data-config-group="mapaFerias" aria-labelledby="tituloMapaFerias">
+                    <div class="list-heading"><strong id="tituloMapaFerias">Mapa de férias</strong></div>
+                    <div class="vacation-map-toolbar">
+                        <label>Mês <select id="mesMapaFerias" onchange="atualizarMapaFerias()"></select></label>
+                        <label>Ano <select id="anoMapaFerias" onchange="atualizarMapaFerias()"></select></label>
+                        <p><b>I</b> Início · <b>•</b> Férias · <b>F</b> Último dia · <b>R</b> Retorno</p>
+                    </div>
+                    <div class="management-table-scroll" tabindex="0" aria-label="Mapa diário de férias, com rolagem horizontal">
+                        <table id="gradeMapaFerias" class="vacation-grid">
+                            <caption class="sr-only">Férias e total diário de fiscais ausentes</caption>
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
                 <div id="overviewLists" class="overview-lists"></div>
             </div>
             

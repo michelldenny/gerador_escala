@@ -424,3 +424,52 @@ test('mês final acompanha início e seletor dos ciclos guarda configurações p
   await new Promise(resolve=>setTimeout(resolve,0));
  } finally {dom.window.close();}
 });
+
+test('mapa de férias conta sobreposições, marca retorno e abre o período cadastrado', async () => {
+  const state = structuredClone(base);
+  state.mesAtualIndex = 0;
+  state.anoAtual = 2027;
+  state.ferias = {
+    '001': [{ inicio: '2026-12-30', fim: '2027-01-02' }],
+    '002': [{ inicio: '2027-01-02', fim: '2027-01-04' }]
+  };
+  const {dom, window:w, document:d} = await setup(state);
+  try {
+    w.mostrarTela('configuracoes');
+    w.mostrarGrupoConfig('mapaFerias');
+    const grade = d.getElementById('gradeMapaFerias');
+    const resumo = grade.tHead.rows[1];
+    assert.deepEqual([...resumo.cells].slice(1, 6).map(td => td.textContent), ['1','2','1','1','0']);
+    assert.equal(resumo.cells[2].dataset.ausentes, '2');
+    assert.equal(grade.tBodies[0].rows[0].cells[3].dataset.estado, 'retorno');
+    assert.equal(grade.tBodies[0].rows[1].cells[2].dataset.estado, 'inicio');
+    grade.tBodies[0].rows[0].cells[1].querySelector('button').click();
+    assert.equal(d.getElementById('inicioFerias').value, '2026-12-30');
+    assert.equal(d.getElementById('anoFerias').value, '2026');
+    await new Promise(resolve => setTimeout(resolve, 0));
+  } finally { dom.window.close(); }
+});
+
+test('atalhos contam dias inclusivos e o ano de férias segue disponível em consulta', async () => {
+  const {dom, window:w, document:d, execute} = await setup();
+  try {
+    const ano = d.getElementById('anoFerias');
+    ano.value = '2025';
+    d.getElementById('inicioFerias').value = '2028-02-25';
+    w.sincronizarFimFerias();
+    assert.equal(ano.value, '2025');
+    for (const [duracao, data] of [[10,'2028-03-05'],[15,'2028-03-10'],[20,'2028-03-15'],[30,'2028-03-25']]) {
+      w.definirDuracaoFerias(duracao);
+      assert.equal(d.getElementById('fimFerias').value, data);
+    }
+    w.persistencia.canEdit = false;
+    execute(script('editor.js'));
+    assert.equal(ano.disabled, false);
+    assert.equal(d.getElementById('inicioFerias').disabled, true);
+    w.mostrarGrupoConfig('mapaFerias');
+    assert.equal(d.getElementById('anoMapaFerias').disabled, false);
+    assert.equal(d.getElementById('mesMapaFerias').disabled, false);
+    assert.equal(d.querySelector('#gradeMapaFerias button').disabled, true);
+    await new Promise(resolve => setTimeout(resolve, 0));
+  } finally { dom.window.close(); }
+});

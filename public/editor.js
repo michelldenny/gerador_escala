@@ -6,9 +6,9 @@
     document.body.classList.toggle('read-only',!editable);
     toggle.textContent=editable?'Bloquear edição':'Liberar edição';
     if(role)role.textContent=editable?'Edição liberada':'Consulta pública';
-    const selectors='#editorStack input,#editorStack select,#editorStack button,#listaFuncionarios button,#listaFerias button,#listaFeriados button,#backupInput,#importXmlInput';
+    const selectors='#editorStack input,#editorStack select,#editorStack button,#listaFuncionarios button,#listaFerias button,#listaFeriados button,#gradeMapaFerias button,#backupInput,#importXmlInput';
     document.querySelectorAll(selectors).forEach(el=>{
-      if(el.id==='anoCiclos')return;
+      if(el.id==='anoCiclos'||el.hasAttribute('data-consulta'))return;
       if(!editable&&!el.disabled){el.dataset.lockedByRole='true';el.disabled=true;}
       else if(editable&&el.dataset.lockedByRole){el.disabled=false;delete el.dataset.lockedByRole;}
     });
