@@ -52,3 +52,72 @@
 }
 #editorStack .editor-card .config-add-button:hover {filter:brightness(.94)}
 #editorStack .editor-card .config-add-button:disabled {filter:none}
+
+.vacation-duration {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border: 0;
+    padding: 0 0 4px;
+}
+.vacation-duration legend { color: #344d64; font-size: 12px; margin-bottom: 6px; }
+.management-form-actions .vacation-duration button {
+    flex: 0 0 auto;
+    padding: 6px 12px !important;
+    min-height: 32px;
+    border: 1px solid #c8dad8;
+    border-radius: 6px;
+    background: #eff7f6;
+    color: #165c55;
+}
+
+.vacation-map { grid-column: 1 / -1; min-width: 0; }
+.vacation-map-toolbar {
+    display: flex;
+    align-items: end;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 20px;
+}
+.vacation-map-toolbar label { display: grid; gap: 4px; font-size: 12px; }
+.vacation-map-toolbar select { border: 1px solid #dce5ef; border-radius: 6px; padding: 7px; }
+.vacation-map-toolbar p { color: #344d64; font-size: 12px; padding-bottom: 6px; }
+.vacation-grid { border-spacing: 0; font-size: 12px; white-space: nowrap; }
+.vacation-grid th, .vacation-grid td {
+    min-width: 42px;
+    height: 36px;
+    border-right: 1px solid #e1e8f0;
+    border-bottom: 1px solid #e1e8f0;
+    text-align: center;
+    background: #fff;
+}
+.vacation-grid small { display: block; font-weight: normal; }
+.vacation-grid thead th { background: #f4f8fa; color: #344d64; }
+.vacation-grid tr > th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 156px;
+    min-width: 156px;
+    max-width: 156px;
+    padding: 6px 10px;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    background: #f4f8fa;
+}
+.vacation-grid [data-estado] { color: #164d74; background: #d8ebfa; }
+.vacation-grid [data-estado="inicio"],
+.vacation-grid [data-estado="unico"] { color: #fff; background: #17689c; }
+.vacation-grid [data-estado="fim"] { color: #fff; background: #355388; }
+.vacation-grid [data-estado="retorno"] { color: #14573e; background: #e2f4e9; }
+.vacation-grid [data-estado] button { width: 100%; height: 35px; font-weight: 700; }
+.vacation-grid [data-estado] button:disabled { opacity: 1; }
+.vacation-grid [data-estado] button:enabled:hover { box-shadow: inset 0 0 0 2px currentColor; }
+.vacation-grid [data-ausentes] { font-weight: 700; }
+.vacation-grid [data-ausentes="1"] { background: #e3f1ff; color: #18446c; }
+.vacation-grid [data-ausentes="2"] { background: #a8cdf2; color: #12375b; }
+.vacation-grid [data-ausentes="3"] { background: #366da4; color: #fff; }
+.vacation-grid [data-ausentes="4"] { background: #173f67; color: #fff; }
+.vacation-grid .vacation-grid-empty { padding: 12px; text-align: left; }
